@@ -2,6 +2,7 @@ package frameReader
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,8 +12,9 @@ import (
 )
 
 type FrameReader struct {
-	buff *bufio.Reader
-	file *os.File
+	buff       *bufio.Reader
+	file       *os.File
+	prefixBuff bytes.Buffer
 }
 
 func New(path string) *FrameReader {
@@ -24,7 +26,30 @@ func New(path string) *FrameReader {
 }
 
 func (fr *FrameReader) Next() *types.Frame[types.DataPlayer] {
-	l, _, err := fr.buff.ReadLine()
+	lBuff, isPrefix, err := fr.buff.ReadLine()
+	if isPrefix {
+		n, err := fr.prefixBuff.Write(lBuff)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("buffering %d bytes as prefix", n)
+		return fr.Next()
+	}
+
+	prefixSize := fr.prefixBuff.Available()
+	if prefixSize > 0 {
+		fr.prefixBuff.Write(lBuff)
+		all := make([]byte, fr.prefixBuff.Available())
+		_, err := fr.prefixBuff.Read(all)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println(string(all))
+		fr.prefixBuff.Reset()
+		lBuff = all
+	}
+
 	if err != nil {
 		if err == io.EOF {
 			cerr := fr.file.Close()
@@ -38,7 +63,7 @@ func (fr *FrameReader) Next() *types.Frame[types.DataPlayer] {
 	}
 
 	newFrame := new(types.Frame[types.DataPlayer])
-	err = json.Unmarshal(l, newFrame)
+	err = json.Unmarshal(lBuff, newFrame)
 	if err != nil {
 		log.Println(err)
 		return nil
