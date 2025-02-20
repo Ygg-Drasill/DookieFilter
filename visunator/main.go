@@ -8,8 +8,8 @@ import (
 	"image/color"
 	"log"
 	"time"
-	"visunator/frame"
 	"visunator/frameReader"
+	"visunator/types"
 )
 
 const (
@@ -27,8 +27,8 @@ var (
 type Game struct {
 	fr          *frameReader.FrameReader
 	ball        []float64
-	awayPlayers map[string]frame.Player
-	homePlayers map[string]frame.Player
+	awayPlayers map[string]types.Player
+	homePlayers map[string]types.Player
 	time        time.Time
 	done        bool
 }
@@ -57,21 +57,29 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
+	debugInfo := fmt.Sprintf("%d:%d:%d", g.time.Hour(), g.time.Minute(), g.time.Second())
+
 	x := SCREEN_W/2 + float32(g.ball[0])
 	y := SCREEN_H/2 + float32(g.ball[1])
 
 	vector.DrawFilledCircle(screen, x, y, 8, color.White, true)
 
+	debugInfo = fmt.Sprintf("%s away:%d", debugInfo, len(g.awayPlayers))
 	for _, p := range g.awayPlayers {
 		px, py := float32(p.Xyz[0]), float32(p.Xyz[1])
 		vector.DrawFilledCircle(screen, px, py, 16, RED, true)
 	}
 
-	if g.done {
-		ebitenutil.DebugPrint(screen, fmt.Sprintf("%s - %s", g.time.String(), "done"))
-	} else {
-		ebitenutil.DebugPrint(screen, g.time.String())
+	debugInfo = fmt.Sprintf("%s home:%d", debugInfo, len(g.homePlayers))
+	for _, p := range g.homePlayers {
+		px, py := float32(p.Xyz[0]), float32(p.Xyz[1])
+		vector.DrawFilledCircle(screen, px, py, 16, RED, true)
 	}
+
+	if g.done {
+		debugInfo = fmt.Sprintf("%s %s", debugInfo, "done")
+	}
+	ebitenutil.DebugPrint(screen, debugInfo)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -82,7 +90,7 @@ func main() {
 	fr := frameReader.New("./raw.jsonl")
 	ebiten.SetWindowSize(SCREEN_W, SCREEN_H)
 	ebiten.SetWindowTitle("Visunator")
-	if err := ebiten.RunGame(&Game{fr: fr, done: false, awayPlayers: make(map[string]frame.Player), homePlayers: make(map[string]frame.Player)}); err != nil {
+	if err := ebiten.RunGame(&Game{fr: fr, done: false, awayPlayers: make(map[string]types.Player), homePlayers: make(map[string]types.Player)}); err != nil {
 		log.Fatal(err)
 	}
 }

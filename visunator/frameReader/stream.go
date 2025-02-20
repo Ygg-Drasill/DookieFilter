@@ -7,7 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
-	"visunator/frame"
+	"visunator/types"
 )
 
 type FrameReader struct {
@@ -23,7 +23,7 @@ func New(path string) *FrameReader {
 	return &FrameReader{buff: bufio.NewReader(f), file: f}
 }
 
-func (fr *FrameReader) Next() *frame.Frame[frame.DataPlayer] {
+func (fr *FrameReader) Next() *types.Frame[types.DataPlayer] {
 	l, _, err := fr.buff.ReadLine()
 	if err != nil {
 		if err == io.EOF {
@@ -37,7 +37,7 @@ func (fr *FrameReader) Next() *frame.Frame[frame.DataPlayer] {
 		return nil
 	}
 
-	newFrame := new(frame.Frame[frame.DataPlayer])
+	newFrame := new(types.Frame[types.DataPlayer])
 	err = json.Unmarshal(l, newFrame)
 	if err != nil {
 		log.Println(err)
@@ -46,6 +46,10 @@ func (fr *FrameReader) Next() *frame.Frame[frame.DataPlayer] {
 
 	if len(newFrame.Data[0].Ball.Xyz) == 0 { //TODO: maybe return signal later :)
 		fmt.Println("hello")
+		return fr.Next()
+	}
+
+	if len(newFrame.Data[0].HomePlayers) == 0 {
 		return fr.Next()
 	}
 
