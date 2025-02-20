@@ -20,14 +20,14 @@ func New(path string) *FrameReader {
 	return &FrameReader{b: bufio.NewReader(f)}
 }
 
-func (fr *FrameReader) Next() *frame.RawFrame {
+func (fr *FrameReader) Next() *frame.Frame[frame.DataPlayer] {
 	l, _, err := fr.b.ReadLine()
 	if err != nil {
 		log.Println(err)
 		return nil
 	}
 
-	newFrame := new(frame.RawFrame)
+	newFrame := new(frame.Frame[frame.DataPlayer])
 	err = json.Unmarshal(l, newFrame)
 	if err != nil {
 		log.Println(err)

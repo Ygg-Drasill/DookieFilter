@@ -1,24 +1,32 @@
 package main
 
 import (
-	"fmt"
-	"image/color"
-	"log"
-	"os"
-	"strings"
-
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
+	"image/color"
+	"log"
+	"visunator/frameReader"
 )
 
-type Game struct{}
+const (
+	SCREEN_W = 640
+	SCREEN_H = 480
+)
+
+type Game struct {
+	fr   *frameReader.FrameReader
+	ball []float64
+}
 
 func (g *Game) Update() error {
+	g.ball = g.fr.Next().Data[0].Ball.Xyz
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	vector.DrawFilledCircle(screen, 32, 32, 16, color.White, true)
+	x := SCREEN_W/2 + float32(g.ball[0])
+	y := SCREEN_H/2 + float32(g.ball[1])
+	vector.DrawFilledCircle(screen, x, y, 16, color.White, true)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -26,15 +34,10 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 }
 
 func main() {
-	data, err := os.ReadFile("../data/raw-data.jsonl")
-	if err != nil {
-		log.Fatal(err)
-	}
-	lines := strings.Split(string(data), "\n")
-	fmt.Println(lines)
-	ebiten.SetWindowSize(640, 480)
+	fr := frameReader.New("./raw.jsonl")
+	ebiten.SetWindowSize(SCREEN_W, SCREEN_H)
 	ebiten.SetWindowTitle("Visunator")
-	if err := ebiten.RunGame(&Game{}); err != nil {
+	if err := ebiten.RunGame(&Game{fr: fr}); err != nil {
 		log.Fatal(err)
 	}
 }
