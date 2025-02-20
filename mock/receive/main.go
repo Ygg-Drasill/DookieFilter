@@ -6,6 +6,10 @@ import (
 )
 
 func main() {
+	Receiver()
+}
+
+func Receiver() {
 	context, err := zmq.NewContext()
 	if err != nil {
 		log.Fatal(err)
@@ -27,11 +31,6 @@ func main() {
 	}
 
 	for {
-		msg, err := socket.Recv(zmq.SNDMORE)
-		if err != nil {
-			log.Fatal(err)
-		}
-		log.Println(msg)
 		m, err := socket.Recv(0)
 		if err != nil {
 			log.Fatal(err)

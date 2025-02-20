@@ -1,13 +1,15 @@
 package main
 
 import (
+	"encoding/json"
+	"github.com/Ygg-Drasill/DookieFilter/common/frameReader"
 	zmq "github.com/pebbe/zmq4"
 	"log"
 	"time"
 )
 
 const (
-	endpoint = "tcp://localhost:5555"
+	endpoint = "tcp://*:5555"
 )
 
 func main() {
@@ -15,6 +17,7 @@ func main() {
 }
 
 func Transmitter() {
+	s := frameReader.New("../../visunator/raw.jsonl")
 	zmqContext, err := zmq.NewContext()
 	if err != nil {
 		log.Fatal(err)
@@ -37,12 +40,21 @@ func Transmitter() {
 	}(socket)
 
 	for {
-		msg := "Hello"
-		b, err := socket.Send(msg, 0)
+		startTime := time.Now()
+		msg := s.Next()
+		bytes, err := json.Marshal(msg)
+		if err != nil {
+			log.Fatal(err)
+		}
+		b, err := socket.Send(string(bytes), 0)
 		if err != nil {
 			log.Fatal(err)
 		}
 		log.Println(b)
-		time.Sleep(2 * time.Second)
+		for {
+			if time.Now().Sub(startTime) > time.Second/25 {
+				break
+			}
+		}
 	}
 }
