@@ -11,6 +11,8 @@ import (
 	"os"
 )
 
+const StartByte = 100_000_000
+
 type FrameReader struct {
 	buff       *bufio.Reader
 	file       *os.File
@@ -19,10 +21,20 @@ type FrameReader struct {
 
 func New(path string) *FrameReader {
 	f, err := os.Open(path)
+	_, err = f.Seek(StartByte, 0)
 	if err != nil {
 		log.Fatal(err)
 	}
-	return &FrameReader{buff: bufio.NewReader(f), file: f}
+	fr := &FrameReader{buff: bufio.NewReader(f), file: f}
+	fr.goToNextFrameStart()
+	return fr
+}
+
+func (fr *FrameReader) goToNextFrameStart() {
+	char := make([]byte, 1)
+	for char[0] != '\n' {
+		fr.file.Read(char)
+	}
 }
 
 func (fr *FrameReader) Next() *types.Frame[types.DataPlayer] {
