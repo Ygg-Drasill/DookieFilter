@@ -15,7 +15,7 @@ import (
 const (
 	SCREEN_W = 1200
 	SCREEN_H = 800
-	SCALE    = 4
+	SCALE    = 8
 
 	FIELD_W = 105
 	FIELD_H = 68
@@ -87,6 +87,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		debugInfo = fmt.Sprintf("%s %s", debugInfo, "done")
 	}
 	ebitenutil.DebugPrint(screen, debugInfo)
+	fieldX := xoff - FIELD_W*SCALE/2
+	fieldY := yoff - FIELD_H*SCALE/2
+	vector.StrokeRect(screen, fieldX, fieldY, FIELD_W*SCALE, FIELD_H*SCALE, 1, color.White, false)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
