@@ -5,10 +5,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/Ygg-Drasill/DookieFilter/common/types"
 	"io"
 	"log"
 	"os"
-	"visunator/types"
 )
 
 type FrameReader struct {

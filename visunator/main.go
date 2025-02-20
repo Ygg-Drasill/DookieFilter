@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/Ygg-Drasill/DookieFilter/common/types"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
@@ -9,7 +10,6 @@ import (
 	"log"
 	"time"
 	"visunator/frameReader"
-	"visunator/types"
 )
 
 const (
