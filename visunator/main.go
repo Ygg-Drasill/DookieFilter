@@ -13,8 +13,12 @@ import (
 )
 
 const (
-	SCREEN_W = 640
-	SCREEN_H = 480
+	SCREEN_W = 1200
+	SCREEN_H = 800
+	SCALE    = 4
+
+	FIELD_W = 105
+	FIELD_H = 68
 )
 
 var (
@@ -59,21 +63,24 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	debugInfo := fmt.Sprintf("%d:%d:%d", g.time.Hour(), g.time.Minute(), g.time.Second())
 
-	x := SCREEN_W/2 + float32(g.ball[0])
-	y := SCREEN_H/2 + float32(g.ball[1])
+	xoff := float32(SCREEN_W / 2)
+	yoff := float32(SCREEN_H / 2)
 
-	vector.DrawFilledCircle(screen, x, y, 8, color.White, true)
+	x := xoff + float32(g.ball[0])*SCALE
+	y := yoff + float32(g.ball[1])*SCALE
+
+	vector.DrawFilledCircle(screen, x, y, 4, color.White, true)
 
 	debugInfo = fmt.Sprintf("%s away:%d", debugInfo, len(g.awayPlayers))
 	for _, p := range g.awayPlayers {
 		px, py := float32(p.Xyz[0]), float32(p.Xyz[1])
-		vector.DrawFilledCircle(screen, px, py, 16, RED, true)
+		vector.DrawFilledCircle(screen, px*SCALE+xoff, py*SCALE+yoff, 8, RED, true)
 	}
 
 	debugInfo = fmt.Sprintf("%s home:%d", debugInfo, len(g.homePlayers))
 	for _, p := range g.homePlayers {
 		px, py := float32(p.Xyz[0]), float32(p.Xyz[1])
-		vector.DrawFilledCircle(screen, px, py, 16, RED, true)
+		vector.DrawFilledCircle(screen, px*SCALE+xoff, py*SCALE+yoff, 8, BLUE, true)
 	}
 
 	if g.done {
@@ -87,7 +94,9 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 }
 
 func main() {
+
 	fr := frameReader.New("./raw.jsonl")
+
 	ebiten.SetWindowSize(SCREEN_W, SCREEN_H)
 	ebiten.SetWindowTitle("Visunator")
 	if err := ebiten.RunGame(&Game{fr: fr, done: false, awayPlayers: make(map[string]types.Player), homePlayers: make(map[string]types.Player)}); err != nil {

@@ -36,16 +36,15 @@ func (fr *FrameReader) Next() *types.Frame[types.DataPlayer] {
 		return fr.Next()
 	}
 
-	prefixSize := fr.prefixBuff.Available()
+	prefixSize := fr.prefixBuff.Len()
 	if prefixSize > 0 {
 		fr.prefixBuff.Write(lBuff)
-		all := make([]byte, fr.prefixBuff.Available())
+		all := make([]byte, fr.prefixBuff.Len())
 		_, err := fr.prefixBuff.Read(all)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		fmt.Println(string(all))
 		fr.prefixBuff.Reset()
 		lBuff = all
 	}
