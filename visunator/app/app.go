@@ -95,6 +95,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 
 func (g *Game) Run() {
 	ebiten.SetWindowSize(SCREEN_W, SCREEN_H)
+	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	ebiten.SetWindowTitle("Visunator")
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
