@@ -26,15 +26,73 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 }
 
 func main() {
-	data, err := os.ReadFile("../data.jsonl")
+	data, err := os.ReadFile("../data/raw-data.jsonl")
 	if err != nil {
 		log.Fatal(err)
 	}
-	lines := strings.Split(data)
-	fmt.Println("hello world")
+	lines := strings.Split(string(data), "\n")
+	fmt.Println(lines)
 	ebiten.SetWindowSize(640, 480)
 	ebiten.SetWindowTitle("Visunator")
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
+}
+
+type RawFrame struct {
+	League    string `json:"league"`
+	GameId    string `json:"gameId"`
+	FeedName  string `json:"feedName"`
+	MessageId string `json:"messageId"`
+	Data      []struct {
+		AwayPlayers []struct {
+			Number   string    `json:"number"`
+			OptaId   string    `json:"optaId"`
+			PlayerId string    `json:"playerId"`
+			Speed    float64   `json:"speed"`
+			Xyz      []float64 `json:"xyz"`
+		} `json:"awayPlayers"`
+		Ball struct {
+			Speed float64   `json:"speed"`
+			Xyz   []float64 `json:"xyz"`
+		} `json:"ball"`
+		FrameIdx    int     `json:"frameIdx"`
+		GameClock   float64 `json:"gameClock"`
+		HomePlayers []struct {
+			Number   string    `json:"number"`
+			OptaId   string    `json:"optaId"`
+			PlayerId string    `json:"playerId"`
+			Speed    float64   `json:"speed"`
+			Xyz      []float64 `json:"xyz"`
+		} `json:"homePlayers"`
+		Period    int   `json:"period"`
+		WallClock int64 `json:"wallClock"`
+	} `json:"data"`
+}
+
+type ProducedFrame struct {
+	Period      int     `json:"period"`
+	FrameIdx    int     `json:"frameIdx"`
+	GameClock   float64 `json:"gameClock"`
+	WallClock   int64   `json:"wallClock"`
+	HomePlayers []struct {
+		PlayerId string    `json:"playerId"`
+		Number   int       `json:"number"`
+		Xyz      []float64 `json:"xyz"`
+		Speed    float64   `json:"speed"`
+		OptaId   string    `json:"optaId"`
+	} `json:"homePlayers"`
+	AwayPlayers []struct {
+		PlayerId string    `json:"playerId"`
+		Number   int       `json:"number"`
+		Xyz      []float64 `json:"xyz"`
+		Speed    float64   `json:"speed"`
+		OptaId   string    `json:"optaId"`
+	} `json:"awayPlayers"`
+	Ball struct {
+		Xyz   []float64 `json:"xyz"`
+		Speed float64   `json:"speed"`
+	} `json:"ball"`
+	Live      bool   `json:"live"`
+	LastTouch string `json:"lastTouch"`
 }
