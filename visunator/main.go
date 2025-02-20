@@ -70,6 +70,20 @@ type RawFrame struct {
 	} `json:"data"`
 }
 
+type RawFrameSignal struct {
+	League    string `json:"league"`
+	GameId    string `json:"gameId"`
+	FeedName  string `json:"feedName"`
+	MessageId string `json:"messageId"`
+	Data      []struct {
+		EndFrameIdx    int   `json:"endFrameIdx"`
+		EndWallClock   int64 `json:"endWallClock"`
+		Number         int   `json:"number"`
+		StartFrameIdx  int   `json:"startFrameIdx"`
+		StartWallClock int64 `json:"startWallClock"`
+	} `json:"data"`
+}
+
 type ProducedFrame struct {
 	Period      int     `json:"period"`
 	FrameIdx    int     `json:"frameIdx"`
