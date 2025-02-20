@@ -5,6 +5,10 @@ import (
 	"log"
 )
 
+const (
+	endpoint = "tcp://localhost:5555"
+)
+
 func main() {
 	Receiver()
 }
@@ -20,7 +24,7 @@ func Receiver() {
 		log.Fatal(err)
 	}
 
-	err = socket.Connect("tcp://localhost:5555")
+	err = socket.Connect(endpoint)
 	if err != nil {
 		log.Fatal(err)
 	}
