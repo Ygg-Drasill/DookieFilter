@@ -1,4 +1,4 @@
-package frame
+package types
 
 type Player struct {
 	Number   string    `json:"number"`
