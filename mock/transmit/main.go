@@ -17,7 +17,7 @@ func main() {
 }
 
 func Transmitter() {
-	s := frameReader.New("../../visunator/raw.jsonl")
+	s := frameReader.New("raw.jsonl")
 	zmqContext, err := zmq.NewContext()
 	if err != nil {
 		log.Fatal(err)
