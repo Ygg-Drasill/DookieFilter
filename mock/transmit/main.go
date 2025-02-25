@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/Ygg-Drasill/DookieFilter/common/frameReader"
 	zmq "github.com/pebbe/zmq4"
 	"log"
@@ -10,10 +11,32 @@ import (
 	"time"
 )
 
-var endpoint string
+type Endpoint struct {
+	Protocol string
+	Host     string
+	Port     string
+}
+
+var e Endpoint
 
 func init() {
-	endpoint = os.Getenv("ENDPOINT")
+	e = Endpoint{
+		Protocol: os.Getenv("PROTOCOL"),
+		Host:     os.Getenv("HOST"),
+		Port:     os.Getenv("PORT"),
+	}
+	if e.Protocol == "" {
+		e.Protocol = "tcp"
+		slog.Info("PROTOCOL not set, using default", "protocol", e.Protocol)
+	}
+	if e.Host == "" {
+		e.Host = "localhost"
+		slog.Info("HOST not set, using default", "host", e.Host)
+	}
+	if e.Port == "" {
+		e.Host = "5555"
+		slog.Info("PORT not set, using default", "port", e.Port)
+	}
 }
 
 func main() {
@@ -21,10 +44,7 @@ func main() {
 }
 
 func Transmitter() {
-	if endpoint == "" {
-		endpoint = "tcp://localhost:5555"
-		slog.Info("ENDPOINT not set, using default", "endpoint", endpoint)
-	}
+	endpoint := fmt.Sprintf("%s://%s:%s", e.Protocol, e.Host, e.Port)
 	s := frameReader.New("raw.jsonl")
 	zmqContext, err := zmq.NewContext()
 	if err != nil {
