@@ -7,11 +7,11 @@ import (
 	"time"
 )
 
-func New(serviceName string) *slog.Logger {
+func New(serviceName string, logLevel string) *slog.Logger {
 	handler := pterm.NewSlogHandler(&pterm.Logger{
 		Formatter:    pterm.LogFormatterColorful,
 		Writer:       os.Stdout,
-		Level:        getLogLevel(),
+		Level:        getLogLevel(logLevel),
 		ShowCaller:   true,
 		CallerOffset: 0,
 		ShowTime:     true,
@@ -31,8 +31,8 @@ func New(serviceName string) *slog.Logger {
 	return slog.New(handler)
 }
 
-func getLogLevel() pterm.LogLevel {
-	switch os.Getenv("LOG_LEVEL") {
+func getLogLevel(l string) pterm.LogLevel {
+	switch l {
 	case "DISABLE":
 		return pterm.LogLevelDisabled
 	case "TRACE":
