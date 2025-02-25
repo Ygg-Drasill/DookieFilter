@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Ygg-Drasill/DookieFilter/common/frameReader"
+	"github.com/Ygg-Drasill/DookieFilter/common/logger"
 	zmq "github.com/pebbe/zmq4"
 	"log"
 	"log/slog"
@@ -20,6 +21,7 @@ type Endpoint struct {
 var e Endpoint
 
 func init() {
+	slog.SetDefault(logger.New("transmitter"))
 	e = Endpoint{
 		Protocol: os.Getenv("PROTOCOL"),
 		Host:     os.Getenv("HOST"),
@@ -34,8 +36,8 @@ func init() {
 		slog.Info("HOST not set, using default", "host", e.Host)
 	}
 	if e.Port == "" {
-		e.Host = "5555"
-		slog.Info("PORT not set, using default", "port", e.Port)
+		e.Port = "5555"
+		slog.Debug("PORT not set, using default", "port", e.Port)
 	}
 }
 
