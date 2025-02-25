@@ -5,18 +5,26 @@ import (
 	"github.com/Ygg-Drasill/DookieFilter/common/frameReader"
 	zmq "github.com/pebbe/zmq4"
 	"log"
+	"log/slog"
+	"os"
 	"time"
 )
 
-const (
-	endpoint = "tcp://*:5555"
-)
+var endpoint string
+
+func init() {
+	endpoint = os.Getenv("ENDPOINT")
+}
 
 func main() {
 	Transmitter()
 }
 
 func Transmitter() {
+	if endpoint == "" {
+		endpoint = "tcp://localhost:5555"
+		slog.Info("ENDPOINT not set, using default", "endpoint", endpoint)
+	}
 	s := frameReader.New("raw.jsonl")
 	zmqContext, err := zmq.NewContext()
 	if err != nil {
