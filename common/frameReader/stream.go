@@ -19,6 +19,7 @@ type FrameReader struct {
 	file        *os.File
 	prefixBuff  bytes.Buffer
 	frameStarts []int64
+	frameCount  int64
 }
 
 func New(path string) *FrameReader {
@@ -64,6 +65,7 @@ func (fr *FrameReader) loadFrameBeginnings() {
 		}
 		filePosition += int64(n)
 	}
+	fr.frameCount = int64(len(fr.frameStarts))
 }
 
 func (fr *FrameReader) goToNextFrameStart() {
@@ -126,4 +128,8 @@ func (fr *FrameReader) Next() *types.Frame[types.DataPlayer] {
 	}
 
 	return newFrame
+}
+
+func (fr *FrameReader) FrameCount() int64 {
+	return fr.frameCount
 }
