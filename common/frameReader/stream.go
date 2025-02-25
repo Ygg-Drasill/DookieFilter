@@ -10,7 +10,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"sync"
 )
 
 const StartByte = 100_000_000
@@ -36,54 +35,35 @@ func New(path string) *FrameReader {
 		file: f,
 	}
 	fr.loadFrameBeginnings()
-	fr.goToNextFrameStart()
+	fr.file.Seek(0, 0)
 	fmt.Println(len(fr.frameStarts))
 	return fr
 }
 
-const FrameLoaders = 2
-
 func (fr *FrameReader) loadFrameBeginnings() {
 	fr.frameStarts = make([]int64, 1)
-	fr.frameStarts = append(fr.frameStarts, 0)
-	info, err := fr.file.Stat()
-	if err != nil {
-		log.Fatal(err)
-	}
-	chunkSize := info.Size() / FrameLoaders
-	wg := sync.WaitGroup{}
-	mu := sync.Mutex{}
-	for i := 0; i < FrameLoaders; i++ {
-		info, _ := fr.file.Stat()
-		bar := progressbar.Default(info.Size())
-		wg.Add(1)
-		go func(offset, chunkSize int64) {
-			f, err := os.Open(fr.file.Name())
-			defer f.Close()
-			if err != nil {
-				log.Fatal(err)
-			}
+	fr.file.Seek(0, 0)
+	info, _ := fr.file.Stat()
 
-			buff := make([]byte, chunkSize)
-			n, err := f.Read(buff)
-			if err != nil || n == 0 {
-				return
+	buff := make([]byte, 64*1024)
+	filePosition := int64(0)
+	bar := progressbar.Default(int64(info.Size()))
+	for {
+		n, readErr := fr.file.Read(buff)
+		if readErr == io.EOF || n == 0 {
+			break
+		} else if readErr != nil {
+			log.Fatal(readErr)
+		}
+		bar.Add(n)
+
+		for i := 0; i < n; i++ {
+			if buff[i] == '\n' {
+				fr.frameStarts = append(fr.frameStarts, filePosition+int64(i)+1)
 			}
-			for k := int64(0); k < chunkSize; k += 1 {
-				err = bar.Add(1)
-				if err != nil {
-					return
-				}
-				if buff[k] == '\n' {
-					mu.Lock()
-					fr.frameStarts = append(fr.frameStarts, k+1)
-					mu.Unlock()
-				}
-			}
-			wg.Done()
-		}(int64(i)*chunkSize, chunkSize)
+		}
+		filePosition += int64(n)
 	}
-	wg.Wait()
 }
 
 func (fr *FrameReader) goToNextFrameStart() {
