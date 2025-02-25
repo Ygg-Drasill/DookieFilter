@@ -30,7 +30,7 @@ func init() {
 		slog.Info("PROTOCOL not set, using default", "protocol", e.Protocol)
 	}
 	if e.Host == "" {
-		e.Host = "localhost"
+		e.Host = "*"
 		slog.Info("HOST not set, using default", "host", e.Host)
 	}
 	if e.Port == "" {
