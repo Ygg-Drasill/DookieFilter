@@ -75,7 +75,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		mx, _ := ebiten.CursorPosition()
 		windowWidth := 1000
-		fmt.Println(float32(mx / windowWidth))
+		frameIndex := int64(float32(mx) / float32(windowWidth) * float32(g.frameLoader.FrameCount()))
+		fmt.Println(frameIndex)
+		err := g.frameLoader.GoToFrame(frameIndex)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	debugInfo := fmt.Sprintf("%d:%d:%d", g.time.Hour(), g.time.Minute(), g.time.Second())

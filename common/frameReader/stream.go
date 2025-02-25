@@ -130,6 +130,15 @@ func (fr *FrameReader) Next() *types.Frame[types.DataPlayer] {
 	return newFrame
 }
 
+func (fr *FrameReader) GoToFrame(frameIndex int64) error {
+	if frameIndex > fr.frameCount {
+		return fmt.Errorf("index %d out of frame range", frameIndex)
+	}
+	fr.file.Seek(fr.frameStarts[frameIndex], 0)
+	fr.buff.Reset(fr.file)
+	return nil
+}
+
 func (fr *FrameReader) FrameCount() int64 {
 	return fr.frameCount
 }
