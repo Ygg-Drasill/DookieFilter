@@ -6,28 +6,84 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Ygg-Drasill/DookieFilter/common/types"
+	"github.com/schollz/progressbar/v3"
 	"io"
 	"log"
 	"os"
+	"sync"
 )
 
 const StartByte = 100_000_000
 
 type FrameReader struct {
-	buff       *bufio.Reader
-	file       *os.File
-	prefixBuff bytes.Buffer
+	buff        *bufio.Reader
+	file        *os.File
+	prefixBuff  bytes.Buffer
+	frameStarts []int64
 }
 
 func New(path string) *FrameReader {
 	f, err := os.Open(path)
+	if err != nil {
+		log.Fatal(err)
+	}
 	_, err = f.Seek(StartByte, 0)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fr := &FrameReader{buff: bufio.NewReader(f), file: f}
+	fr := &FrameReader{
+		buff: bufio.NewReader(f),
+		file: f,
+	}
+	fr.loadFrameBeginnings()
 	fr.goToNextFrameStart()
+	fmt.Println(len(fr.frameStarts))
 	return fr
+}
+
+const FrameLoaders = 2
+
+func (fr *FrameReader) loadFrameBeginnings() {
+	fr.frameStarts = make([]int64, 1)
+	fr.frameStarts = append(fr.frameStarts, 0)
+	info, err := fr.file.Stat()
+	if err != nil {
+		log.Fatal(err)
+	}
+	chunkSize := info.Size() / FrameLoaders
+	wg := sync.WaitGroup{}
+	mu := sync.Mutex{}
+	for i := 0; i < FrameLoaders; i++ {
+		info, _ := fr.file.Stat()
+		bar := progressbar.Default(info.Size())
+		wg.Add(1)
+		go func(offset, chunkSize int64) {
+			f, err := os.Open(fr.file.Name())
+			defer f.Close()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			buff := make([]byte, chunkSize)
+			n, err := f.Read(buff)
+			if err != nil || n == 0 {
+				return
+			}
+			for k := int64(0); k < chunkSize; k += 1 {
+				err = bar.Add(1)
+				if err != nil {
+					return
+				}
+				if buff[k] == '\n' {
+					mu.Lock()
+					fr.frameStarts = append(fr.frameStarts, k+1)
+					mu.Unlock()
+				}
+			}
+			wg.Done()
+		}(int64(i)*chunkSize, chunkSize)
+	}
+	wg.Wait()
 }
 
 func (fr *FrameReader) goToNextFrameStart() {
@@ -40,11 +96,11 @@ func (fr *FrameReader) goToNextFrameStart() {
 func (fr *FrameReader) Next() *types.Frame[types.DataPlayer] {
 	lBuff, isPrefix, err := fr.buff.ReadLine()
 	if isPrefix {
-		n, err := fr.prefixBuff.Write(lBuff)
+		_, err := fr.prefixBuff.Write(lBuff)
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Printf("buffering %d bytes as prefix", n)
+		//log.Printf("buffering %d bytes as prefix", n)
 		return fr.Next()
 	}
 
