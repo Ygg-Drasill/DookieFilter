@@ -33,20 +33,21 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		float32(g.frameIndex)/float32(g.frameLoader.FrameCount())*float32(g.width),
 		float32(g.height), color.White, true)
 
-	debugInfo = fmt.Sprintf("%s away:%d", debugInfo, len(g.awayPlayers))
+	debugInfo = fmt.Sprintf("%s\naway:%d", debugInfo, len(g.awayPlayers))
 	for _, p := range g.awayPlayers {
 		px, py := float32(p.Xyz[0])*SCALE+xoff, float32(p.Xyz[1])*SCALE+yoff
 		DrawPlayer(screen, p, RED, px, py)
 	}
 
-	debugInfo = fmt.Sprintf("%s home:%d", debugInfo, len(g.homePlayers))
+	debugInfo = fmt.Sprintf("%s\nhome:%d", debugInfo, len(g.homePlayers))
 	for _, p := range g.homePlayers {
 		px, py := float32(p.Xyz[0])*SCALE+xoff, float32(p.Xyz[1])*SCALE+yoff
 		DrawPlayer(screen, p, BLUE, px, py)
 	}
 
+	debugInfo = fmt.Sprintf("%s\n%dms per frame", debugInfo, g.updateFrequency)
 	if g.done {
-		debugInfo = fmt.Sprintf("%s %s", debugInfo, "done")
+		debugInfo = fmt.Sprintf("%s\n%s", debugInfo, "done")
 	}
 	ebitenutil.DebugPrint(screen, debugInfo)
 	fieldX := xoff - FIELD_W*SCALE/2

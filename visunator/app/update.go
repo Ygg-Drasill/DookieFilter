@@ -12,6 +12,11 @@ func (g *Game) Update() error {
 	if !g.active || g.done && g.frameIndex != -1 {
 		return nil
 	}
+	tNow := time.Now().UnixMilli()
+	tSinceLastUpdate := tNow - g.lastUpdate
+	if int(tSinceLastUpdate) < g.updateFrequency {
+		return nil
+	}
 	frame := g.frameLoader.Next()
 	g.frameIndex++
 	if frame == nil {
@@ -29,6 +34,8 @@ func (g *Game) Update() error {
 	for _, p := range data.HomePlayers {
 		g.homePlayers[p.PlayerId] = p
 	}
+
+	g.lastUpdate = tNow
 	return nil
 }
 

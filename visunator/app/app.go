@@ -6,6 +6,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"image/color"
 	"log"
+	"math"
 	"time"
 	_ "visunator/font"
 )
@@ -30,15 +31,17 @@ var (
 )
 
 type Game struct {
-	frameLoader   types.FrameLoader[types.DataPlayer]
-	frameIndex    int64
-	ball          []float64
-	awayPlayers   map[string]types.Player
-	homePlayers   map[string]types.Player
-	time          time.Time
-	done          bool
-	active        bool
-	width, height int
+	frameLoader     types.FrameLoader[types.DataPlayer]
+	frameIndex      int64
+	ball            []float64
+	awayPlayers     map[string]types.Player
+	homePlayers     map[string]types.Player
+	time            time.Time
+	done            bool
+	active          bool
+	width, height   int
+	updateFrequency int
+	lastUpdate      int64
 }
 
 func (g *Game) Run() {
@@ -53,11 +56,13 @@ func (g *Game) Run() {
 func NewFromReader(path string) *Game {
 	fr := frameReader.New(path)
 	return &Game{
-		frameLoader: fr,
-		frameIndex:  -1,
-		done:        false,
-		active:      true,
-		awayPlayers: make(map[string]types.Player),
-		homePlayers: make(map[string]types.Player),
+		frameLoader:     fr,
+		frameIndex:      -1,
+		done:            false,
+		active:          true,
+		awayPlayers:     make(map[string]types.Player),
+		homePlayers:     make(map[string]types.Player),
+		updateFrequency: int(math.Floor(1000 / 25)),
+		lastUpdate:      time.Now().UnixMilli(),
 	}
 }
