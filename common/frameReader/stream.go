@@ -6,15 +6,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Ygg-Drasill/DookieFilter/common/types"
+	"github.com/schollz/progressbar/v3"
 	"io"
 	"log"
 	"os"
 )
 
+const StartByte = 100_000_000
+
 type FrameReader struct {
-	buff       *bufio.Reader
-	file       *os.File
-	prefixBuff bytes.Buffer
+	buff        *bufio.Reader
+	file        *os.File
+	prefixBuff  bytes.Buffer
+	frameStarts []int64
+	frameCount  int64
 }
 
 func New(path string) (*FrameReader, error) {
@@ -22,17 +27,62 @@ func New(path string) (*FrameReader, error) {
 	if err != nil {
 		return nil, fmt.Errorf("opening file: %w", err)
 	}
-	return &FrameReader{buff: bufio.NewReader(f), file: f}, nil
+	_, err = f.Seek(StartByte, 0)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fr := &FrameReader{
+		buff: bufio.NewReader(f),
+		file: f,
+	}
+	fr.loadFrameBeginnings()
+	fr.file.Seek(0, 0)
+	fmt.Println(len(fr.frameStarts))
+	return fr
+}
+
+func (fr *FrameReader) loadFrameBeginnings() {
+	fr.frameStarts = make([]int64, 1)
+	fr.file.Seek(0, 0)
+	info, _ := fr.file.Stat()
+
+	buff := make([]byte, 64*1024)
+	filePosition := int64(0)
+	bar := progressbar.Default(int64(info.Size()))
+	for {
+		n, readErr := fr.file.Read(buff)
+		if readErr == io.EOF || n == 0 {
+			break
+		} else if readErr != nil {
+			log.Fatal(readErr)
+		}
+		bar.Add(n)
+
+		for i := 0; i < n; i++ {
+			if buff[i] == '\n' {
+				fr.frameStarts = append(fr.frameStarts, filePosition+int64(i)+1)
+			}
+		}
+		filePosition += int64(n)
+	}
+	fr.frameCount = int64(len(fr.frameStarts))
+}
+
+func (fr *FrameReader) goToNextFrameStart() {
+	char := make([]byte, 1)
+	for char[0] != '\n' {
+		fr.file.Read(char)
+	}
 }
 
 func (fr *FrameReader) Next() (*types.Frame[types.DataPlayer], error) {
 	lBuff, isPrefix, err := fr.buff.ReadLine()
 	if isPrefix {
-		n, err := fr.prefixBuff.Write(lBuff)
+		_, err := fr.prefixBuff.Write(lBuff)
 		if err != nil {
 			return nil, fmt.Errorf("writing prefix: %w", err)
 		}
-		log.Printf("buffering %d bytes as prefix", n)
+		//log.Printf("buffering %d bytes as prefix", n)
 		return fr.Next()
 	}
 
@@ -76,4 +126,17 @@ func (fr *FrameReader) Next() (*types.Frame[types.DataPlayer], error) {
 	}
 
 	return newFrame, nil
+}
+
+func (fr *FrameReader) GoToFrame(frameIndex int64) error {
+	if frameIndex > fr.frameCount {
+		return fmt.Errorf("index %d out of frame range", frameIndex)
+	}
+	fr.file.Seek(fr.frameStarts[frameIndex], 0)
+	fr.buff.Reset(fr.file)
+	return nil
+}
+
+func (fr *FrameReader) FrameCount() int64 {
+	return fr.frameCount
 }
