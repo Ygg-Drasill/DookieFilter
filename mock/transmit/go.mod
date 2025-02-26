@@ -3,7 +3,7 @@ module github.com/Ygg-Drasill/DookieFilter/transmit
 go 1.23.4
 
 require (
-	github.com/Ygg-Drasill/DookieFilter/common v0.0.0-20250225124623-cf58cfe2b0ae
+	github.com/Ygg-Drasill/DookieFilter/common v0.0.0-20250226080701-166d43fc0c39
 	github.com/pebbe/zmq4 v1.2.11
 )
 
