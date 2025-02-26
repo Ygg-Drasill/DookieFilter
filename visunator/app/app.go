@@ -39,9 +39,9 @@ type Game struct {
 	time            time.Time
 	done            bool
 	active          bool
-	width, height   int
-	updateFrequency int
-	lastUpdate      int64
+	width, height int
+	frameTime     int
+	lastUpdate    int64
 }
 
 func (g *Game) Run() {
@@ -59,13 +59,13 @@ func NewFromReader(path string) *Game {
 		log.Fatal(err)
 	}
 	return &Game{
-		frameLoader:     fr,
-		frameIndex:      -1,
-		done:            false,
-		active:          true,
-		awayPlayers:     make(map[string]types.Player),
-		homePlayers:     make(map[string]types.Player),
-		updateFrequency: int(math.Floor(1000 / 25)),
-		lastUpdate:      time.Now().UnixMilli(),
+		frameLoader: fr,
+		frameIndex:  -1,
+		done:        false,
+		active:      true,
+		awayPlayers: make(map[string]types.Player),
+		homePlayers: make(map[string]types.Player),
+		frameTime:   int(math.Floor(1000 / 25)),
+		lastUpdate:  time.Now().UnixMilli(),
 	}
 }

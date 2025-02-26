@@ -45,7 +45,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		DrawPlayer(screen, p, BLUE, px, py)
 	}
 
-	debugInfo = fmt.Sprintf("%s\n%dms per frame", debugInfo, g.updateFrequency)
+	debugInfo = fmt.Sprintf("%s\n%dms per frame", debugInfo, g.frameTime)
 	if g.done {
 		debugInfo = fmt.Sprintf("%s\n%s", debugInfo, "done")
 	}

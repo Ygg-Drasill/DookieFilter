@@ -9,6 +9,7 @@ import (
 	"github.com/schollz/progressbar/v3"
 	"io"
 	"log"
+	"log/slog"
 	"os"
 )
 
@@ -41,7 +42,7 @@ func New(path string) (*FrameReader, error) {
 	}
 	fr.loadFrameBeginnings()
 	fr.file.Seek(0, 0)
-	fmt.Println(len(fr.frameStarts))
+	slog.Debug(fmt.Sprintf("%d frames loaded", len(fr.frameStarts)))
 	return fr, nil
 }
 
@@ -52,7 +53,8 @@ func (fr *FrameReader) loadFrameBeginnings() {
 
 	buff := make([]byte, 64*1024)
 	filePosition := int64(0)
-	bar := progressbar.Default(int64(info.Size()))
+	bar := progressbar.DefaultBytes(int64(info.Size()), "loading frame positions")
+
 	for {
 		n, readErr := fr.file.Read(buff)
 		if readErr == io.EOF || n == 0 {

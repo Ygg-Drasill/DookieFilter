@@ -14,7 +14,7 @@ func (g *Game) Update() error {
 	}
 	tNow := time.Now().UnixMilli()
 	tSinceLastUpdate := tNow - g.lastUpdate
-	if int(tSinceLastUpdate) < g.updateFrequency {
+	if int(tSinceLastUpdate) < g.frameTime {
 		return nil
 	}
 	frame, err := g.frameLoader.Next()
@@ -58,5 +58,21 @@ func (g *Game) HandleInputs() {
 
 	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
 		g.active = !g.active
+	}
+
+	if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
+		g.frameTime++
+	} else if ebiten.IsKeyPressed(ebiten.KeyShift) && ebiten.IsKeyPressed(ebiten.KeyUp) {
+		g.frameTime++
+	}
+
+	if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
+		g.frameTime--
+	} else if ebiten.IsKeyPressed(ebiten.KeyShift) && ebiten.IsKeyPressed(ebiten.KeyDown) {
+		g.frameTime--
+	}
+
+	if g.frameTime < 20 {
+		g.frameTime = 20
 	}
 }
