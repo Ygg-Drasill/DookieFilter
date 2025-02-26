@@ -42,41 +42,7 @@ func New(path string) (*FrameReader, error) {
 	fr.loadFrameBeginnings()
 	fr.file.Seek(0, 0)
 	fmt.Println(len(fr.frameStarts))
-	return fr
-}
-
-func (fr *FrameReader) loadFrameBeginnings() {
-	fr.frameStarts = make([]int64, 1)
-	fr.file.Seek(0, 0)
-	info, _ := fr.file.Stat()
-
-	buff := make([]byte, 64*1024)
-	filePosition := int64(0)
-	bar := progressbar.Default(int64(info.Size()))
-	for {
-		n, readErr := fr.file.Read(buff)
-		if readErr == io.EOF || n == 0 {
-			break
-		} else if readErr != nil {
-			log.Fatal(readErr)
-		}
-		bar.Add(n)
-
-		for i := 0; i < n; i++ {
-			if buff[i] == '\n' {
-				fr.frameStarts = append(fr.frameStarts, filePosition+int64(i)+1)
-			}
-		}
-		filePosition += int64(n)
-	}
-	fr.frameCount = int64(len(fr.frameStarts))
-}
-
-func (fr *FrameReader) goToNextFrameStart() {
-	char := make([]byte, 1)
-	for char[0] != '\n' {
-		fr.file.Read(char)
-	}
+	return fr, nil
 }
 
 func (fr *FrameReader) loadFrameBeginnings() {
@@ -164,19 +130,6 @@ func (fr *FrameReader) Next() (*types.Frame[types.DataPlayer], error) {
 	}
 
 	return newFrame, nil
-}
-
-func (fr *FrameReader) GoToFrame(frameIndex int64) error {
-	if frameIndex > fr.frameCount {
-		return fmt.Errorf("index %d out of frame range", frameIndex)
-	}
-	fr.file.Seek(fr.frameStarts[frameIndex], 0)
-	fr.buff.Reset(fr.file)
-	return nil
-}
-
-func (fr *FrameReader) FrameCount() int64 {
-	return fr.frameCount
 }
 
 func (fr *FrameReader) GoToFrame(frameIndex int64) error {

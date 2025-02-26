@@ -54,7 +54,10 @@ func (g *Game) Run() {
 }
 
 func NewFromReader(path string) *Game {
-	fr := frameReader.New(path)
+	fr, err := frameReader.New(path)
+	if err != nil {
+		log.Fatal(err)
+	}
 	return &Game{
 		frameLoader:     fr,
 		frameIndex:      -1,

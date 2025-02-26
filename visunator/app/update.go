@@ -17,7 +17,10 @@ func (g *Game) Update() error {
 	if int(tSinceLastUpdate) < g.updateFrequency {
 		return nil
 	}
-	frame := g.frameLoader.Next()
+	frame, err := g.frameLoader.Next()
+	if err != nil {
+		return err
+	}
 	g.frameIndex++
 	if frame == nil {
 		g.done = true
