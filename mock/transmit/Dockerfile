@@ -35,7 +35,8 @@ RUN apt-get update --fix-missing && \
 
 # Copy binary from builder
 COPY --from=builder /mock-transmitter /mock-transmitter
-
-COPY raw.jsonl ./
+ARG FILEPATH
+ENV FILEPATH=${FILEPATH}
+COPY ${FILEPATH} ${FILEPATH}
 # Run the application
 CMD ["/mock-transmitter"]
