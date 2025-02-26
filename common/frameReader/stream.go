@@ -138,7 +138,10 @@ func (fr *FrameReader) GoToFrame(frameIndex int64) error {
 	if frameIndex > fr.frameCount {
 		return fmt.Errorf("index %d out of frame range", frameIndex)
 	}
-	fr.file.Seek(fr.frameStarts[frameIndex], 0)
+	_, err := fr.file.Seek(fr.frameStarts[frameIndex], 0)
+	if err != nil {
+		slog.Error("failed to seek in file", "error", err)
+	}
 	fr.buff.Reset(fr.file)
 	return nil
 }

@@ -14,7 +14,6 @@ import (
 const (
 	SCREEN_W = 1200
 	SCREEN_H = 800
-	SCALE    = 8
 
 	FIELD_W = 105
 	FIELD_H = 68
@@ -31,15 +30,16 @@ var (
 )
 
 type Game struct {
-	frameLoader     types.FrameLoader[types.DataPlayer]
-	frameIndex      int64
-	ball            []float64
-	awayPlayers     map[string]types.Player
-	homePlayers     map[string]types.Player
-	time            time.Time
-	done            bool
-	active          bool
+	frameLoader   types.FrameLoader[types.DataPlayer]
+	frameIndex    int64
+	ball          []float64
+	awayPlayers   map[string]types.Player
+	homePlayers   map[string]types.Player
+	time          time.Time
+	done          bool
+	active        bool
 	width, height int
+	scale         float32
 	frameTime     int
 	lastUpdate    int64
 }
@@ -67,5 +67,6 @@ func NewFromReader(path string) *Game {
 		homePlayers: make(map[string]types.Player),
 		frameTime:   int(math.Floor(1000 / 25)),
 		lastUpdate:  time.Now().UnixMilli(),
+		scale:       10,
 	}
 }
