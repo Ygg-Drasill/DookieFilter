@@ -9,7 +9,7 @@ graph TD;
     Visunator[[Visunator]]
 
     DataStream ==>|Raw Data #40;Columns#41;|Collector;
-    PB -->MinIO & Visunator;
+    PB -->|Produced Data|MinIO & Visunator;
 
     subgraph VM
     Collector["Collector"];
