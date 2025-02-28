@@ -1,5 +1,6 @@
 # DookieFilter
 
+
 ```mermaid
 graph TD;
     DataStream((("Data")));
@@ -7,22 +8,24 @@ graph TD;
     MinIO[(MinIO)];
     Visunator[[Visunator]]
 
-    DataStream ==>|Raw Data|Collector;
+    DataStream ==>|Raw Data #40;Columns#41;|Collector;
     PB -->MinIO & Visunator;
 
     subgraph VM
-    Collector(["Collector"]);
+    Collector["Collector"];
     Detector["Detector"];
     FixSwap["Fix Swap"];
     FixJump["Fix Jump"];
     Filter(("Filter"));
 
-    Collector -->Detector;
+    Collector ==>|Raw Data #40;Rows#41;|Detector;
     Detector -.->|Swap| FixSwap;
     Detector -.->|Jump| FixJump;
+    Detector -->|Accepted|Filter;
     FixSwap & FixJump -->Filter;
     end
-    Collector & Filter -->PB;
+    Collector ==o|Predicted Data|PB;
+    Filter ==>|Clean Data|PB;
 
     Detector -.->|Missing|AIInterference;
     AIInterference -.-|Read|PB;
