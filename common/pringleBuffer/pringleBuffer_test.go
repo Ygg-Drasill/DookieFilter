@@ -35,10 +35,10 @@ func TestPringleBuffer(t *testing.T) {
 
 	err = nil
 	element, err = queue.Get(bKey)
-	assert.NotNil(t, element)
+	assert.NotNil(t, element, "Key b should exist")
 	assert.Equal(t, b, element)
 
 	element, err = queue.Get(cKey)
-	assert.NotNil(t, element)
+	assert.NotNil(t, element, "Key c should exist")
 	assert.Equal(t, c, element)
 }

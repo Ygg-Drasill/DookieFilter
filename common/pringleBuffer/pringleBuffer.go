@@ -22,68 +22,83 @@ func New[TElement PringleIndexable](size int) *PringleBuffer[TElement] {
 }
 
 func (pb *PringleBuffer[TElement]) Count() int {
-	if !pb.dirty {
-		return pb.count
-	}
-
-	count := 0
-	element := pb.head
-	for element.next != nil {
-		count++
-	}
-	pb.count = count
-	pb.dirty = false
-	return count
+	return pb.count
 }
 
 func (pb *PringleBuffer[TElement]) Insert(data TElement) {
-	pb.dirty = true
-	newElement := &PringleElement[TElement]{
-		data: data,
-	}
+	newElement := &PringleElement[TElement]{data: data}
 	if pb.head == nil {
 		pb.head = newElement
 		pb.count++
 		return
 	}
-
-	next := pb.head
-	var prev *PringleElement[TElement]
-	for next.Key() > newElement.Key() {
-		prev = next
-		next = next.next
-	}
-
-	full := pb.Count() < pb.Size
-
-	if !full && prev != nil {
-		prev.next = newElement
-	}
-
-	if next == nil && !full {
+	if pb.tail == nil {
 		pb.tail = newElement
-	} else if !full {
-		newElement.next = next
+	}
+	full := pb.Count() >= pb.Size
+
+	prev := pb.head
+	next := pb.head.next
+	//traverse
+	for prev.Key() > newElement.Key() {
+		prev, next = next, next.next
 	}
 
-	pb.count++
+	//insert not full
+	if !full {
+		pb.count++
+		if prev == pb.head { //is new head
+			newElement.next = pb.head
+			newElement.next.prev = newElement
+			pb.head = newElement
+			return
+		}
+
+		if next == nil { //is new tail
+			prev.next = newElement
+			newElement.prev = prev
+			pb.tail = newElement
+			return
+		}
+
+		prev.next = newElement
+		next.prev = newElement
+		newElement.next = next
+		newElement.prev = prev
+		return
+	}
+
+	//if full - only insert into middle -> trim tail
+	if next == nil { //would be new tail, but buffer is full so don't insert
+		return
+	}
+
+	if prev == pb.head { //is new head
+		newElement.next = pb.head
+		newElement.next.prev = newElement
+		pb.head = newElement
+	} else {
+		prev.next = newElement
+		next.prev = newElement
+		newElement.next = next
+		newElement.prev = prev
+	}
+
+	//trim tail
+	tail := pb.tail
+	pb.tail = tail.prev
+	pb.tail.next = nil
 }
 
 func (pb *PringleBuffer[TElement]) Get(key Key) (PringleIndexable, error) {
 	var element *PringleElement[TElement]
 	current := pb.head
-	for current.Key() > key {
-		next := current.next
-		if next.Key() == key {
-			return next, nil
+	for current.Key() != key {
+		current = current.next
+		if current == nil {
+			return nil, PringleBufferError{msg: "element does not exist"}
 		}
-		if next.Key() < key {
-			break
-		}
-		current = next
 	}
-	if element == nil {
-		return nil, PringleBufferError{msg: "element does not exist"}
-	}
+	element = current
 	return element.data, nil
 }
