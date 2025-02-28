@@ -32,3 +32,8 @@ require (
 )
 
 replace github.com/Ygg-Drasill/DookieFilter/common => ../common
+
+require (
+	github.com/go-echarts/go-echarts v1.0.0 // indirect
+    github.com/go-echarts/go-echarts/v2 v2.5.1 // indirect
+)

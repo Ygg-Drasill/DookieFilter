@@ -1,4 +1,4 @@
-package main
+package filter
 
 import (
 	"github.com/go-echarts/go-echarts/v2/charts"

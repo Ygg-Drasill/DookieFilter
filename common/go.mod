@@ -3,6 +3,7 @@ module github.com/Ygg-Drasill/DookieFilter/common
 go 1.23.4
 
 require (
+	github.com/go-echarts/go-echarts/v2 v2.5.1
 	github.com/pterm/pterm v0.12.80
 	github.com/schollz/progressbar/v3 v3.18.0
 )
