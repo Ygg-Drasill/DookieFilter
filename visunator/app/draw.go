@@ -22,11 +22,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 	debugInfo := fmt.Sprintf("%d:%d:%d", g.time.Hour(), g.time.Minute(), g.time.Second())
 
-	xoff := float32(SCREEN_W / 2)
-	yoff := float32(SCREEN_H / 2)
+	xoff := float32(g.width / 2)
+	yoff := float32(g.height / 2)
 
-	x := xoff + float32(g.ball[0])*SCALE
-	y := yoff + float32(g.ball[1])*SCALE
+	x := xoff + float32(g.ball[0])*g.scale
+	y := yoff + float32(g.ball[1])*g.scale
 
 	vector.DrawFilledCircle(screen, x, y, BALL_SIZE, color.White, true)
 	vector.DrawFilledRect(screen, 0, float32(g.height)-12,
@@ -35,13 +35,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	debugInfo = fmt.Sprintf("%s\naway:%d", debugInfo, len(g.awayPlayers))
 	for _, p := range g.awayPlayers {
-		px, py := float32(p.Xyz[0])*SCALE+xoff, float32(p.Xyz[1])*SCALE+yoff
+		px, py := float32(p.Xyz[0])*g.scale+xoff, float32(p.Xyz[1])*g.scale+yoff
 		DrawPlayer(screen, p, RED, px, py)
 	}
 
 	debugInfo = fmt.Sprintf("%s\nhome:%d", debugInfo, len(g.homePlayers))
 	for _, p := range g.homePlayers {
-		px, py := float32(p.Xyz[0])*SCALE+xoff, float32(p.Xyz[1])*SCALE+yoff
+		px, py := float32(p.Xyz[0])*g.scale+xoff, float32(p.Xyz[1])*g.scale+yoff
 		DrawPlayer(screen, p, BLUE, px, py)
 	}
 
@@ -50,9 +50,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		debugInfo = fmt.Sprintf("%s\n%s", debugInfo, "done")
 	}
 	ebitenutil.DebugPrint(screen, debugInfo)
-	fieldX := xoff - FIELD_W*SCALE/2
-	fieldY := yoff - FIELD_H*SCALE/2
-	vector.StrokeRect(screen, fieldX, fieldY, FIELD_W*SCALE, FIELD_H*SCALE, 1, color.White, false)
+	fieldX := xoff - FIELD_W*g.scale/2
+	fieldY := yoff - FIELD_H*g.scale/2
+	vector.StrokeRect(screen, fieldX, fieldY, FIELD_W*g.scale, FIELD_H*g.scale, 1, color.White, false)
 }
 
 func DrawPlayer(screen *ebiten.Image, player types.Player, col color.Color, x, y float32) {

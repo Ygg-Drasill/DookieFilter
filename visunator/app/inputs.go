@@ -12,6 +12,12 @@ func (g *Game) HandleInputs() {
 		if my < g.height/2 {
 			return
 		}
+
+		if mx < 0 {
+			mx = 0
+		} else if mx > g.width-1 {
+			mx = g.width - 1
+		}
 		frameIndex := int64(float32(mx) / float32(g.width) * float32(g.frameLoader.FrameCount()))
 		err := g.frameLoader.GoToFrame(frameIndex)
 		g.frameIndex = frameIndex
@@ -38,5 +44,11 @@ func (g *Game) HandleInputs() {
 
 	if g.frameTime < 20 {
 		g.frameTime = 20
+	}
+
+	if inpututil.IsKeyJustPressed(ebiten.KeyComma) && g.scale > 1 {
+		g.scale -= 0.5
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyPeriod) {
+		g.scale += 0.5
 	}
 }
