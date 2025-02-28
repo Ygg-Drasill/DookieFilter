@@ -25,7 +25,7 @@ graph TD;
     FixSwap & FixJump -->Filter;
     end
     Collector ==o|Predicted Data|PB;
-    Filter ==>|Clean Data|PB;
+    Filter ==>|Filtered Data|PB;
 
     Detector -.->|Missing|AIInterference;
     AIInterference -.-|Read|PB;
