@@ -29,6 +29,7 @@ func (pb *PringleBuffer[TElement]) Insert(data TElement) {
 	newElement := &PringleElement[TElement]{data: data}
 	if pb.head == nil {
 		pb.head = newElement
+		pb.tail = newElement
 		pb.count++
 		return
 	}
