@@ -11,7 +11,7 @@ func (te testElement) Key() Key {
 	return Key(te)
 }
 
-func TestPringleBuffer(t *testing.T) {
+func TestPringleBuffer_Ascending(t *testing.T) {
 	aKey := Key(1)
 	a := testElement(aKey)
 	bKey := Key(2)
@@ -41,4 +41,30 @@ func TestPringleBuffer(t *testing.T) {
 	element, err = queue.Get(cKey)
 	assert.NotNil(t, element, "Key c should exist")
 	assert.Equal(t, c, element)
+}
+
+func TestPringleBuffer_Descending(t *testing.T) {
+	queue := New[testElement](3)
+
+	queue.Insert(testElement(5))
+	queue.Insert(testElement(4))
+	queue.Insert(testElement(3))
+	queue.Insert(testElement(2))
+	queue.Insert(testElement(1))
+	assert.Equal(t, 3, queue.Count(), "Expected count of 3 after full")
+}
+
+func TestPringleBuffer_Count(t *testing.T) {
+	queue := New[testElement](4)
+
+	queue.Insert(testElement(1))
+	assert.Equal(t, 1, queue.Count(), "Expected count of 1 after first insertion")
+	queue.Insert(testElement(3))
+	assert.Equal(t, 2, queue.Count(), "Expected count of 2 after second insertion")
+	queue.Insert(testElement(2))
+	assert.Equal(t, 3, queue.Count(), "Expected count of 3 after third insertion")
+	queue.Insert(testElement(5))
+	assert.Equal(t, 4, queue.Count(), "Expected count of 4 after fourth")
+	queue.Insert(testElement(4))
+	assert.Equal(t, 4, queue.Count(), "Expected count of 4 after full")
 }
