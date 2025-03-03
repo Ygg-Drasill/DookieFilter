@@ -38,34 +38,17 @@ func (pb *PringleBuffer[TElement]) Insert(data TElement) {
 	}
 	full := pb.Count() >= pb.Size
 
-	prev := pb.head
-	next := pb.head.next
+	var prev *PringleElement[TElement]
+	var next = pb.head
 	//traverse
-	for prev.Key() > newElement.Key() {
+	for next != nil && next.Key() > newElement.Key() {
 		prev, next = next, next.next
 	}
 
 	//insert not full
 	if !full {
 		pb.count++
-		if prev == pb.head { //is new head
-			newElement.next = pb.head
-			newElement.next.prev = newElement
-			pb.head = newElement
-			return
-		}
-
-		if next == nil { //is new tail
-			prev.next = newElement
-			newElement.prev = prev
-			pb.tail = newElement
-			return
-		}
-
-		prev.next = newElement
-		next.prev = newElement
-		newElement.next = next
-		newElement.prev = prev
+		pb.insertBetween(prev, next, newElement)
 		return
 	}
 
@@ -74,21 +57,8 @@ func (pb *PringleBuffer[TElement]) Insert(data TElement) {
 		return
 	}
 
-	if prev == pb.head { //is new head
-		newElement.next = pb.head
-		newElement.next.prev = newElement
-		pb.head = newElement
-	} else {
-		prev.next = newElement
-		next.prev = newElement
-		newElement.next = next
-		newElement.prev = prev
-	}
-
-	//trim tail
-	tail := pb.tail
-	pb.tail = tail.prev
-	pb.tail.next = nil
+	pb.insertBetween(prev, next, newElement)
+	pb.trimTail()
 }
 
 func (pb *PringleBuffer[TElement]) Get(key Key) (PringleIndexable, error) {
@@ -102,4 +72,31 @@ func (pb *PringleBuffer[TElement]) Get(key Key) (PringleIndexable, error) {
 	}
 	element = current
 	return element.data, nil
+}
+
+func (pb *PringleBuffer[TElement]) insertBetween(prev, next, element *PringleElement[TElement]) {
+	if prev == nil { //is new head
+		element.next = pb.head
+		pb.head.prev = element
+		pb.head = element
+		return
+	}
+
+	if next == nil { //is new tail
+		element.prev = pb.tail
+		pb.tail.next = element
+		pb.tail = element
+		return
+	}
+
+	prev.next = element
+	element.next = next
+	next.prev = element
+	element.prev = prev
+}
+
+func (pb *PringleBuffer[TElement]) trimTail() {
+	tail := pb.tail
+	pb.tail = tail.prev
+	pb.tail.next = nil
 }
