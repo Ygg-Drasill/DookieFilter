@@ -1,6 +1,8 @@
 package detector
 
 import (
+    "errors"
+    "github.com/Ygg-Drasill/DookieFilter/common/frameReader"
     "github.com/Ygg-Drasill/DookieFilter/common/types"
     "math"
     "strconv"
@@ -83,4 +85,47 @@ func (d *Detector) DetectSwap(currentFrame frames) {
 func adjacencyThreshold(p1 []float64, p2 []float64) bool {
     adjT := 1.1
     return math.Abs(p1[0]-p2[0]) < adjT && math.Abs(p1[1]-p2[1]) < adjT
+}
+
+func LoadFrames() ([]frames, error) {
+    var allFrames []frames
+    f, err := frameReader.New("path/to/file")
+    if err != nil {
+        return nil, err
+    }
+    for {
+        frame, err := f.Next()
+        if errors.Is(err, errors.New("EOF")) {
+            break
+        }
+        if err != nil {
+            return nil, err
+        }
+
+        frameData := frames{
+            frameID: frame.Data[0].FrameIdx,
+        }
+        for _, p := range frame.Data[0].HomePlayers {
+            frameData.players = append(frameData.players, player{
+                playerID: parsePlayerID(p.PlayerId),
+                xyz:      p.Xyz,
+            })
+        }
+        for _, p := range frame.Data[0].AwayPlayers {
+            frameData.players = append(frameData.players, player{
+                playerID: parsePlayerID(p.PlayerId),
+                xyz:      p.Xyz,
+            })
+        }
+        allFrames = append(allFrames, frameData)
+    }
+    return allFrames, nil
+}
+
+func parsePlayerID(playerID string) int {
+    id, err := strconv.Atoi(playerID)
+    if err != nil {
+        return -1 // Default invalid ID handling
+    }
+    return id
 }

@@ -111,7 +111,7 @@ func (fr *FrameReader) Next() (*types.Frame[types.DataPlayer], error) {
 			if cerr != nil {
 				return nil, fmt.Errorf("closing file: %w", cerr)
 			}
-			return nil, fmt.Errorf("end of file: %w", err)
+			return nil, err
 		}
 		return nil, fmt.Errorf("reading line: %w", err)
 	}
