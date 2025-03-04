@@ -11,7 +11,6 @@ type PringleBuffer[TElement PringleIndexable] struct {
 	tail  *PringleElement[TElement]
 	Size  int
 	count int
-	dirty bool
 }
 
 func New[TElement PringleIndexable](size int) *PringleBuffer[TElement] {
