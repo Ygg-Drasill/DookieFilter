@@ -1,1 +1,1 @@
-package detector
+package detec
