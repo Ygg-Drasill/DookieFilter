@@ -81,7 +81,7 @@ func (fr *FrameReader) goToNextFrameStart() {
 	}
 }
 
-func (fr *FrameReader) Next() (*types.Frame[types.DataPlayer], error) {
+func (fr *FrameReader) Next() (*types.GamePacket[types.Frame], error) {
 	lBuff, isPrefix, err := fr.buff.ReadLine()
 	if isPrefix {
 		_, err := fr.prefixBuff.Write(lBuff)
@@ -116,7 +116,7 @@ func (fr *FrameReader) Next() (*types.Frame[types.DataPlayer], error) {
 		return nil, fmt.Errorf("reading line: %w", err)
 	}
 
-	newFrame := new(types.Frame[types.DataPlayer])
+	newFrame := new(types.GamePacket[types.Frame])
 	err = json.Unmarshal(lBuff, newFrame)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling frame: %w", err)

@@ -21,7 +21,7 @@ func (w *CollectorWorker) listen() error {
 
 	if topic == "frame" {
 		//parse raw frame
-		frame := &types.Frame[types.DataPlayer]{}
+		frame := &types.GamePacket[types.Frame]{}
 		fullMessage := strings.Join(msg, "")
 		err := json.Unmarshal([]byte(fullMessage), frame)
 		if err != nil {
