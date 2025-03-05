@@ -8,7 +8,6 @@ import (
 	"github.com/Ygg-Drasill/DookieFilter/common/types"
 	"github.com/schollz/progressbar/v3"
 	"io"
-	"log"
 	"log/slog"
 	"os"
 )
@@ -19,8 +18,9 @@ type FrameReader struct {
 	buff        *bufio.Reader
 	file        *os.File
 	prefixBuff  bytes.Buffer
-	frameStarts []int64
-	frameCount  int64
+	lineStarts  []int64
+	lineCount   int64
+	frameBuffer []types.Frame
 }
 
 func New(path string) (*FrameReader, error) {
@@ -30,26 +30,31 @@ func New(path string) (*FrameReader, error) {
 	}
 	_, err = f.Seek(StartByte, 0)
 	if err != nil {
-		log.Fatal(err)
-	}
-	_, err = f.Seek(StartByte, 0)
-	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("seeking in file: %w", err)
 	}
 	fr := &FrameReader{
 		buff: bufio.NewReader(f),
 		file: f,
 	}
 	fr.loadFrameBeginnings()
-	fr.file.Seek(0, 0)
-	slog.Debug(fmt.Sprintf("%d frames loaded", len(fr.frameStarts)))
+	_, err = fr.file.Seek(0, 0)
+	if err != nil {
+		slog.Warn("failed to seek to start of file", "error", err)
+	}
+	slog.Debug(fmt.Sprintf("%d frames loaded", len(fr.lineStarts)))
 	return fr, nil
 }
 
 func (fr *FrameReader) loadFrameBeginnings() {
-	fr.frameStarts = make([]int64, 1)
-	fr.file.Seek(0, 0)
-	info, _ := fr.file.Stat()
+	fr.lineStarts = make([]int64, 1)
+	_, err := fr.file.Seek(0, 0)
+	if err != nil {
+		slog.Warn("failed to seek to start of file", "error", err)
+	}
+	info, err := fr.file.Stat()
+	if err != nil {
+		slog.Warn("failed to get file info", "error", err)
+	}
 
 	buff := make([]byte, 64*1024)
 	filePosition := int64(0)
@@ -60,28 +65,40 @@ func (fr *FrameReader) loadFrameBeginnings() {
 		if readErr == io.EOF || n == 0 {
 			break
 		} else if readErr != nil {
-			log.Fatal(readErr)
+			slog.Error("failed to read from file", "error", readErr)
+			return
 		}
-		bar.Add(n)
+		err := bar.Add(n)
+		if err != nil {
+			slog.Warn("failed to update progress bar", "error", err)
+		}
 
 		for i := 0; i < n; i++ {
 			if buff[i] == '\n' {
-				fr.frameStarts = append(fr.frameStarts, filePosition+int64(i)+1)
+				fr.lineStarts = append(fr.lineStarts, filePosition+int64(i)+1)
 			}
 		}
 		filePosition += int64(n)
 	}
-	fr.frameCount = int64(len(fr.frameStarts))
+	fr.lineCount = int64(len(fr.lineStarts))
 }
 
 func (fr *FrameReader) goToNextFrameStart() {
 	char := make([]byte, 1)
 	for char[0] != '\n' {
-		fr.file.Read(char)
+		_, err := fr.file.Read(char)
+		if err != nil {
+			slog.Warn("failed to read from file", "error", err)
+		}
 	}
 }
 
-func (fr *FrameReader) Next() (*types.GamePacket[types.Frame], error) {
+func (fr *FrameReader) Next() (*types.Frame, error) {
+	if len(fr.frameBuffer) > 0 {
+		frames := fr.frameBuffer[0]
+		fr.frameBuffer = fr.frameBuffer[1:]
+		return &frames, nil
+	}
 	lBuff, isPrefix, err := fr.buff.ReadLine()
 	if isPrefix {
 		_, err := fr.prefixBuff.Write(lBuff)
@@ -107,11 +124,11 @@ func (fr *FrameReader) Next() (*types.GamePacket[types.Frame], error) {
 
 	if err != nil {
 		if err == io.EOF {
-			cerr := fr.file.Close()
-			if cerr != nil {
-				return nil, fmt.Errorf("closing file: %w", cerr)
+			cErr := fr.file.Close()
+			if cErr != nil {
+				return nil, fmt.Errorf("closing file: %w", cErr)
 			}
-			return nil, fmt.Errorf("end of file: %w", err)
+			return nil, err
 		}
 		return nil, fmt.Errorf("reading line: %w", err)
 	}
@@ -122,23 +139,19 @@ func (fr *FrameReader) Next() (*types.GamePacket[types.Frame], error) {
 		return nil, fmt.Errorf("unmarshalling frame: %w", err)
 	}
 
-	if len(newFrame.Data[0].Ball.Xyz) == 0 { //TODO: maybe return signal later :)
-		fmt.Println("hello")
+	if len(newFrame.Data) == 0 {
 		return fr.Next()
 	}
+	fr.frameBuffer = newFrame.Data[1:]
 
-	if len(newFrame.Data[0].HomePlayers) == 0 {
-		return fr.Next()
-	}
-
-	return newFrame, nil
+	return &newFrame.Data[0], nil
 }
 
 func (fr *FrameReader) GoToFrame(frameIndex int64) error {
-	if frameIndex > fr.frameCount {
+	if frameIndex > fr.lineCount {
 		return fmt.Errorf("index %d out of frame range", frameIndex)
 	}
-	_, err := fr.file.Seek(fr.frameStarts[frameIndex], 0)
+	_, err := fr.file.Seek(fr.lineStarts[frameIndex], 0)
 	if err != nil {
 		slog.Error("failed to seek in file", "error", err)
 	}
@@ -147,5 +160,5 @@ func (fr *FrameReader) GoToFrame(frameIndex int64) error {
 }
 
 func (fr *FrameReader) FrameCount() int64 {
-	return fr.frameCount
+	return fr.lineCount
 }
