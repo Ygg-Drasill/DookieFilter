@@ -8,7 +8,7 @@ import (
 	"sync"
 )
 
-type StorageWorker struct {
+type Worker struct {
 	worker.BaseWorker
 	socketProvide *zmq.Socket
 	socketConsume *zmq.Socket
@@ -17,8 +17,8 @@ type StorageWorker struct {
 	players    map[string]pringleBuffer.PringleBuffer[types.PlayerPosition]
 }
 
-func New(ctx *zmq.Context, options ...func(worker *StorageWorker)) *StorageWorker {
-	w := &StorageWorker{
+func New(ctx *zmq.Context, options ...func(worker *Worker)) *Worker {
+	w := &Worker{
 		BaseWorker: worker.NewBaseWorker(ctx, "storage"),
 		bufferSize: 10,
 		players:    make(map[string]pringleBuffer.PringleBuffer[types.PlayerPosition]),
@@ -29,7 +29,7 @@ func New(ctx *zmq.Context, options ...func(worker *StorageWorker)) *StorageWorke
 	return w
 }
 
-func (w *StorageWorker) Run(wg *sync.WaitGroup) {
+func (w *Worker) Run(wg *sync.WaitGroup) {
 	defer wg.Done()
 	defer w.close()
 	err := w.connect()

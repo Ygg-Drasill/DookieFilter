@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func (w *CollectorWorker) listen() error {
+func (w *Worker) listen() error {
 	topic, err := w.socketListen.Recv(zmq.SNDMORE)
 	if err != nil {
 		return err
@@ -45,7 +45,7 @@ func (w *CollectorWorker) listen() error {
 	return nil
 }
 
-func (w *CollectorWorker) forwardFrame(frame types.SmallFrame) error {
+func (w *Worker) forwardFrame(frame types.SmallFrame) error {
 	message := []any{
 		"frame",
 		types.SerializeFrame(frame),

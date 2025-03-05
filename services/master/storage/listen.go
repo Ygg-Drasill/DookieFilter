@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-func (w *StorageWorker) listenConsume(wg *sync.WaitGroup) {
+func (w *Worker) listenConsume(wg *sync.WaitGroup) {
 	defer wg.Done()
 	for {
 		message, err := w.socketConsume.RecvMessage(0)
@@ -24,6 +24,6 @@ func (w *StorageWorker) listenConsume(wg *sync.WaitGroup) {
 	}
 }
 
-func (w *StorageWorker) listenProvide(wg *sync.WaitGroup) {
+func (w *Worker) listenProvide(wg *sync.WaitGroup) {
 	defer wg.Done()
 }
