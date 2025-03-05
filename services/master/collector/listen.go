@@ -2,7 +2,6 @@ package collector
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/Ygg-Drasill/DookieFilter/common/types"
 	zmq "github.com/pebbe/zmq4"
 	"strings"
@@ -21,29 +20,18 @@ func (w *CollectorWorker) listen() error {
 
 	if topic == "frame" {
 		//parse raw frame
-		frame := &types.GamePacket[types.Frame]{}
+		rawFrame := types.Frame{}
 		fullMessage := strings.Join(msg, "")
-		err := json.Unmarshal([]byte(fullMessage), frame)
+		err := json.Unmarshal([]byte(fullMessage), &rawFrame)
 		if err != nil {
 			return err
 		}
 
-		for _, data := range frame.Data {
-			frameIdx := data.FrameIdx
-			allPlayers := make([]types.PlayerPosition, 0)
-			allPlayers, err = w.storePlayerPositions(frameIdx, data.HomePlayers, allPlayers)
-			if err != nil {
-				return err
-			}
-			allPlayers, err = w.storePlayerPositions(frameIdx, data.AwayPlayers, allPlayers)
-			if err != nil {
-				return err
-			}
+		frame := types.SmallFromBigFrame(rawFrame)
 
-			err = w.forwardPositionsToDetector(frameIdx, allPlayers)
-			if err != nil {
-				return err
-			}
+		err = w.forwardFrame(frame)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -57,34 +45,18 @@ func (w *CollectorWorker) listen() error {
 	return nil
 }
 
-func (w *CollectorWorker) storePlayerPositions(frameIdx int, players []types.Player, allPlayers []types.PlayerPosition) ([]types.PlayerPosition, error) {
-	for _, p := range players {
-
-		position := types.PositionFromPlayer(p, frameIdx)
-		message := []any{
-			"player",
-			frameIdx,
-			p.PlayerId,
-			fmt.Sprintf("%f;%f", position.X, position.Y),
-		}
-
-		_, err := w.socketStore.SendMessage(message)
-		if err != nil {
-			return allPlayers, err
-		}
-		allPlayers = append(allPlayers, position)
-	}
-
-	return allPlayers, nil
-}
-
-func (w *CollectorWorker) forwardPositionsToDetector(frameIdx int, players []types.PlayerPosition) error {
+func (w *CollectorWorker) forwardFrame(frame types.SmallFrame) error {
 	message := []any{
-		"playerframe",
-		types.SerializePlayerPositions(players),
+		"frame",
+		types.SerializeFrame(frame),
 	}
 
-	_, err := w.socketDetector.SendMessage(message)
+	_, err := w.socketStore.SendMessage(message)
+	if err != nil {
+		return err
+	}
+
+	_, err = w.socketDetector.SendMessage(message)
 	if err != nil {
 		return err
 	}

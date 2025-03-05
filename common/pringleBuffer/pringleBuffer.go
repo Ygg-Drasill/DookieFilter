@@ -6,6 +6,9 @@ type PringleIndexable interface {
 	Key() Key
 }
 
+// PringleBuffer
+// A ring buffer, where elements are sorted (prioritized),
+// descending from head to tail
 type PringleBuffer[TElement PringleIndexable] struct {
 	head  *PringleElement[TElement]
 	tail  *PringleElement[TElement]
