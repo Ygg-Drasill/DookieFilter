@@ -1,13 +1,5 @@
 package types
 
-type Player struct {
-	Number   string    `json:"number"`
-	OptaId   string    `json:"optaId"`
-	PlayerId string    `json:"playerId"`
-	Speed    float64   `json:"speed"`
-	Xyz      []float64 `json:"xyz"`
-}
-
 type Frame[DType DataPlayer | DataSignal] struct {
 	League    string  `json:"league"`
 	GameId    string  `json:"gameId"`
