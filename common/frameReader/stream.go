@@ -19,8 +19,8 @@ type FrameReader struct {
 	buff        *bufio.Reader
 	file        *os.File
 	prefixBuff  bytes.Buffer
-	frameStarts []int64
-	frameCount  int64
+	lineStarts  []int64
+	lineCount   int64
 	frameBuffer []types.Frame
 }
 
@@ -43,12 +43,12 @@ func New(path string) (*FrameReader, error) {
 	}
 	fr.loadFrameBeginnings()
 	fr.file.Seek(0, 0)
-	slog.Debug(fmt.Sprintf("%d frames loaded", len(fr.frameStarts)))
+	slog.Debug(fmt.Sprintf("%d frames loaded", len(fr.lineStarts)))
 	return fr, nil
 }
 
 func (fr *FrameReader) loadFrameBeginnings() {
-	fr.frameStarts = make([]int64, 1)
+	fr.lineStarts = make([]int64, 1)
 	fr.file.Seek(0, 0)
 	info, _ := fr.file.Stat()
 
@@ -67,12 +67,12 @@ func (fr *FrameReader) loadFrameBeginnings() {
 
 		for i := 0; i < n; i++ {
 			if buff[i] == '\n' {
-				fr.frameStarts = append(fr.frameStarts, filePosition+int64(i)+1)
+				fr.lineStarts = append(fr.lineStarts, filePosition+int64(i)+1)
 			}
 		}
 		filePosition += int64(n)
 	}
-	fr.frameCount = int64(len(fr.frameStarts))
+	fr.lineCount = int64(len(fr.lineStarts))
 }
 
 func (fr *FrameReader) goToNextFrameStart() {
@@ -137,10 +137,10 @@ func (fr *FrameReader) Next() (*types.Frame, error) {
 }
 
 func (fr *FrameReader) GoToFrame(frameIndex int64) error {
-	if frameIndex > fr.frameCount {
+	if frameIndex > fr.lineCount {
 		return fmt.Errorf("index %d out of frame range", frameIndex)
 	}
-	_, err := fr.file.Seek(fr.frameStarts[frameIndex], 0)
+	_, err := fr.file.Seek(fr.lineStarts[frameIndex], 0)
 	if err != nil {
 		slog.Error("failed to seek in file", "error", err)
 	}
@@ -149,5 +149,5 @@ func (fr *FrameReader) GoToFrame(frameIndex int64) error {
 }
 
 func (fr *FrameReader) FrameCount() int64 {
-	return fr.frameCount
+	return fr.lineCount
 }
