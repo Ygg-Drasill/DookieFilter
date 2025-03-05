@@ -24,7 +24,7 @@ func (g *Game) Update() error {
 		g.done = true
 		return nil
 	}
-	data := frame.Data[0]
+	data := frame
 	g.ball = data.Ball.Xyz
 	g.time = time.Unix(0, data.WallClock*int64(time.Millisecond))
 
