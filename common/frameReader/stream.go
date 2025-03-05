@@ -21,6 +21,7 @@ type FrameReader struct {
 	prefixBuff  bytes.Buffer
 	frameStarts []int64
 	frameCount  int64
+	frameBuffer []types.DataPlayer
 }
 
 func New(path string) (*FrameReader, error) {
@@ -81,14 +82,18 @@ func (fr *FrameReader) goToNextFrameStart() {
 	}
 }
 
-func (fr *FrameReader) Next() (*types.Frame[types.DataPlayer], error) {
+func (fr *FrameReader) Next() (*types.DataPlayer, error) {
+	if len(fr.frameBuffer) > 0 {
+		frames := fr.frameBuffer[0]
+		fr.frameBuffer = fr.frameBuffer[1:]
+		return &frames, nil
+	}
 	lBuff, isPrefix, err := fr.buff.ReadLine()
 	if isPrefix {
 		_, err := fr.prefixBuff.Write(lBuff)
 		if err != nil {
 			return nil, fmt.Errorf("writing prefix: %w", err)
 		}
-		//log.Printf("buffering %d bytes as prefix", n)
 		return fr.Next()
 	}
 
@@ -100,7 +105,6 @@ func (fr *FrameReader) Next() (*types.Frame[types.DataPlayer], error) {
 		if err != nil {
 			return nil, fmt.Errorf("reading prefix: %w", err)
 		}
-
 		fr.prefixBuff.Reset()
 		lBuff = all
 	}
@@ -111,27 +115,23 @@ func (fr *FrameReader) Next() (*types.Frame[types.DataPlayer], error) {
 			if cerr != nil {
 				return nil, fmt.Errorf("closing file: %w", cerr)
 			}
-			return nil, fmt.Errorf("end of file: %w", err)
+			return nil, err
 		}
 		return nil, fmt.Errorf("reading line: %w", err)
 	}
 
-	newFrame := new(types.Frame[types.DataPlayer])
-	err = json.Unmarshal(lBuff, newFrame)
+	var frame types.Frame[types.DataPlayer]
+	err = json.Unmarshal(lBuff, &frame)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling frame: %w", err)
 	}
 
-	if len(newFrame.Data[0].Ball.Xyz) == 0 { //TODO: maybe return signal later :)
-		fmt.Println("hello")
+	if len(frame.Data) == 0 {
 		return fr.Next()
 	}
+	fr.frameBuffer = frame.Data[1:]
 
-	if len(newFrame.Data[0].HomePlayers) == 0 {
-		return fr.Next()
-	}
-
-	return newFrame, nil
+	return &frame.Data[0], nil
 }
 
 func (fr *FrameReader) GoToFrame(frameIndex int64) error {
