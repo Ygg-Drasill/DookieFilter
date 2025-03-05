@@ -21,7 +21,7 @@ type FrameReader struct {
 	prefixBuff  bytes.Buffer
 	frameStarts []int64
 	frameCount  int64
-	frameBuffer []types.DataPlayer
+	frameBuffer []types.Frame
 }
 
 func New(path string) (*FrameReader, error) {
@@ -82,7 +82,7 @@ func (fr *FrameReader) goToNextFrameStart() {
 	}
 }
 
-func (fr *FrameReader) Next() (*types.DataPlayer, error) {
+func (fr *FrameReader) Next() (*types.Frame, error) {
 	if len(fr.frameBuffer) > 0 {
 		frames := fr.frameBuffer[0]
 		fr.frameBuffer = fr.frameBuffer[1:]
@@ -94,6 +94,7 @@ func (fr *FrameReader) Next() (*types.DataPlayer, error) {
 		if err != nil {
 			return nil, fmt.Errorf("writing prefix: %w", err)
 		}
+		//log.Printf("buffering %d bytes as prefix", n)
 		return fr.Next()
 	}
 
@@ -105,6 +106,7 @@ func (fr *FrameReader) Next() (*types.DataPlayer, error) {
 		if err != nil {
 			return nil, fmt.Errorf("reading prefix: %w", err)
 		}
+
 		fr.prefixBuff.Reset()
 		lBuff = all
 	}
@@ -120,18 +122,18 @@ func (fr *FrameReader) Next() (*types.DataPlayer, error) {
 		return nil, fmt.Errorf("reading line: %w", err)
 	}
 
-	var frame types.Frame[types.DataPlayer]
-	err = json.Unmarshal(lBuff, &frame)
+	newFrame := new(types.GamePacket[types.Frame])
+	err = json.Unmarshal(lBuff, newFrame)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling frame: %w", err)
 	}
 
-	if len(frame.Data) == 0 {
+	if len(newFrame.Data) == 0 {
 		return fr.Next()
 	}
-	fr.frameBuffer = frame.Data[1:]
+	fr.frameBuffer = newFrame.Data[1:]
 
-	return &frame.Data[0], nil
+	return &newFrame.Data[0], nil
 }
 
 func (fr *FrameReader) GoToFrame(frameIndex int64) error {

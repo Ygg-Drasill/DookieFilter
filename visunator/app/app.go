@@ -30,7 +30,7 @@ var (
 )
 
 type Game struct {
-	frameLoader   types.FrameLoader[types.DataPlayer]
+	frameLoader   types.FrameLoader[types.Frame]
 	frameIndex    int64
 	ball          []float64
 	awayPlayers   map[string]types.Player

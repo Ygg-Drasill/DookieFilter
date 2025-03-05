@@ -1,14 +1,6 @@
 package types
 
-type Player struct {
-	Number   string    `json:"number"`
-	OptaId   string    `json:"optaId"`
-	PlayerId string    `json:"playerId"`
-	Speed    float64   `json:"speed"`
-	Xyz      []float64 `json:"xyz"`
-}
-
-type Frame[DType DataPlayer | DataSignal] struct {
+type GamePacket[DType Frame | Signal] struct {
 	League    string  `json:"league"`
 	GameId    string  `json:"gameId"`
 	FeedName  string  `json:"feedName"`
@@ -16,7 +8,7 @@ type Frame[DType DataPlayer | DataSignal] struct {
 	Data      []DType `json:"data"`
 }
 
-type DataPlayer struct {
+type Frame struct {
 	AwayPlayers []Player `json:"awayPlayers"`
 	Ball        struct {
 		Speed float64   `json:"speed"`
@@ -29,7 +21,7 @@ type DataPlayer struct {
 	WallClock   int64    `json:"wallClock"`
 }
 
-type DataSignal struct {
+type Signal struct {
 	EndFrameIdx    int   `json:"endFrameIdx"`
 	EndWallClock   int64 `json:"endWallClock"`
 	Number         int   `json:"number"`
