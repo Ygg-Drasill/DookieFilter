@@ -9,5 +9,5 @@ type FrameLoader[TData DataPlayer | DataSignal] interface {
 }
 
 type Worker interface {
-	Run(wg sync.WaitGroup)
+	Run(wg *sync.WaitGroup)
 }
