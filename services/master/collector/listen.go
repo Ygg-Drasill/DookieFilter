@@ -28,15 +28,22 @@ func (w *CollectorWorker) listen() error {
 			return err
 		}
 
-		data := frame.Data[0]
-		frameIdx := data.FrameIdx
-		err = w.forwardPlayerPositions(frameIdx, data.HomePlayers)
-		if err != nil {
-			return err
-		}
-		err = w.forwardPlayerPositions(frameIdx, data.AwayPlayers)
-		if err != nil {
-			return err
+		for _, data := range frame.Data {
+			frameIdx := data.FrameIdx
+			allPlayers := make([]types.PlayerPosition, 0)
+			allPlayers, err = w.storePlayerPositions(frameIdx, data.HomePlayers, allPlayers)
+			if err != nil {
+				return err
+			}
+			allPlayers, err = w.storePlayerPositions(frameIdx, data.AwayPlayers, allPlayers)
+			if err != nil {
+				return err
+			}
+
+			err = w.forwardPositionsToDetector(frameIdx, allPlayers)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -50,24 +57,36 @@ func (w *CollectorWorker) listen() error {
 	return nil
 }
 
-func (w *CollectorWorker) forwardPlayerPositions(frameIdx int, players []types.Player) error {
+func (w *CollectorWorker) storePlayerPositions(frameIdx int, players []types.Player, allPlayers []types.PlayerPosition) ([]types.PlayerPosition, error) {
 	for _, p := range players {
 
+		position := types.PositionFromPlayer(p, frameIdx)
 		message := []any{
 			"player",
 			frameIdx,
 			p.PlayerId,
-			fmt.Sprintf("%f;%f", p.Xyz[0], p.Xyz[1]),
+			fmt.Sprintf("%f;%f", position.X, position.Y),
 		}
 
 		_, err := w.socketStore.SendMessage(message)
 		if err != nil {
-			return err
+			return allPlayers, err
 		}
-		_, err = w.socketDetector.SendMessage(message)
-		if err != nil {
-			return err
-		}
+		allPlayers = append(allPlayers, position)
+	}
+
+	return allPlayers, nil
+}
+
+func (w *CollectorWorker) forwardPositionsToDetector(frameIdx int, players []types.PlayerPosition) error {
+	message := []any{
+		"playerframe",
+		types.SerializePlayerPositions(players),
+	}
+
+	_, err := w.socketDetector.SendMessage(message)
+	if err != nil {
+		return err
 	}
 
 	return nil
