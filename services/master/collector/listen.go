@@ -64,7 +64,7 @@ func (w *CollectorWorker) forwardPlayerPositions(frameIdx int, players []types.P
 		if err != nil {
 			return err
 		}
-		_, err = w.socketForward.SendMessage(message)
+		_, err = w.socketDetector.SendMessage(message)
 		if err != nil {
 			return err
 		}

@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"github.com/Ygg-Drasill/DookieFilter/common/socket/endpoints"
 	zmq "github.com/pebbe/zmq4"
 )
 
@@ -16,22 +17,22 @@ func (w *CollectorWorker) connect() error {
 		return err
 	}
 
-	w.socketForward, err = w.socketContext.NewSocket(zmq.PUSH)
+	w.socketDetector, err = w.socketContext.NewSocket(zmq.PUSH)
 	if err != nil {
 		return err
 	}
 
-	err = w.socketListen.Bind("inproc://collector")
+	err = w.socketListen.Bind(endpoints.InProcessEndpoint(endpoints.COLLECTOR))
 	if err != nil {
 		return err
 	}
 
-	err = w.socketStore.Bind("inproc://storage")
+	err = w.socketStore.Connect(endpoints.InProcessEndpoint(endpoints.STORAGE))
 	if err != nil {
 		return err
 	}
 
-	err = w.socketForward.Bind("inproc://detector")
+	err = w.socketDetector.Connect(endpoints.InProcessEndpoint(endpoints.DETECTOR))
 	if err != nil {
 		return err
 	}
@@ -49,7 +50,7 @@ func (w *CollectorWorker) close() {
 	if w.socketStore != nil {
 		w.logger.Warn("failed to close socket (storage)", "error", err.Error())
 	}
-	err = w.socketForward.Close()
+	err = w.socketDetector.Close()
 	if w.socketStore != nil {
 		w.logger.Warn("failed to close socket (forward)", "error", err.Error())
 	}

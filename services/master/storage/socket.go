@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"github.com/Ygg-Drasill/DookieFilter/common/socket/endpoints"
 	zmq "github.com/pebbe/zmq4"
 )
 
@@ -12,6 +13,16 @@ func (w *StorageWorker) connect() error {
 	}
 
 	w.socketProvide, err = w.socketContext.NewSocket(zmq.REP)
+	if err != nil {
+		return err
+	}
+
+	err = w.socketConsume.Bind(endpoints.InProcessEndpoint(endpoints.STORAGE))
+	if err != nil {
+		return err
+	}
+
+	err = w.socketProvide.Bind(endpoints.InProcessEndpoint(endpoints.STORAGE_PROVIDE))
 	if err != nil {
 		return err
 	}

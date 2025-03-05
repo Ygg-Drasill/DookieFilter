@@ -9,11 +9,11 @@ import (
 )
 
 type CollectorWorker struct {
-	logger        *slog.Logger
-	socketContext *zmq.Context
-	socketListen  *zmq.Socket
-	socketStore   *zmq.Socket
-	socketForward *zmq.Socket
+	logger         *slog.Logger
+	socketContext  *zmq.Context
+	socketListen   *zmq.Socket
+	socketStore    *zmq.Socket
+	socketDetector *zmq.Socket
 }
 
 func New(options ...func(worker *CollectorWorker)) *CollectorWorker {
