@@ -8,7 +8,6 @@ import (
 	"github.com/Ygg-Drasill/DookieFilter/common/types"
 	"github.com/schollz/progressbar/v3"
 	"io"
-	"log"
 	"log/slog"
 	"os"
 )
@@ -31,26 +30,31 @@ func New(path string) (*FrameReader, error) {
 	}
 	_, err = f.Seek(StartByte, 0)
 	if err != nil {
-		log.Fatal(err)
-	}
-	_, err = f.Seek(StartByte, 0)
-	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("seeking in file: %w", err)
 	}
 	fr := &FrameReader{
 		buff: bufio.NewReader(f),
 		file: f,
 	}
 	fr.loadFrameBeginnings()
-	fr.file.Seek(0, 0)
+	_, err = fr.file.Seek(0, 0)
+	if err != nil {
+		slog.Warn("failed to seek to start of file", "error", err)
+	}
 	slog.Debug(fmt.Sprintf("%d frames loaded", len(fr.lineStarts)))
 	return fr, nil
 }
 
 func (fr *FrameReader) loadFrameBeginnings() {
 	fr.lineStarts = make([]int64, 1)
-	fr.file.Seek(0, 0)
-	info, _ := fr.file.Stat()
+	_, err := fr.file.Seek(0, 0)
+	if err != nil {
+		slog.Warn("failed to seek to start of file", "error", err)
+	}
+	info, err := fr.file.Stat()
+	if err != nil {
+		slog.Warn("failed to get file info", "error", err)
+	}
 
 	buff := make([]byte, 64*1024)
 	filePosition := int64(0)
@@ -61,9 +65,13 @@ func (fr *FrameReader) loadFrameBeginnings() {
 		if readErr == io.EOF || n == 0 {
 			break
 		} else if readErr != nil {
-			log.Fatal(readErr)
+			slog.Error("failed to read from file", "error", readErr)
+			return
 		}
-		bar.Add(n)
+		err := bar.Add(n)
+		if err != nil {
+			slog.Warn("failed to update progress bar", "error", err)
+		}
 
 		for i := 0; i < n; i++ {
 			if buff[i] == '\n' {
@@ -78,7 +86,10 @@ func (fr *FrameReader) loadFrameBeginnings() {
 func (fr *FrameReader) goToNextFrameStart() {
 	char := make([]byte, 1)
 	for char[0] != '\n' {
-		fr.file.Read(char)
+		_, err := fr.file.Read(char)
+		if err != nil {
+			slog.Warn("failed to read from file", "error", err)
+		}
 	}
 }
 
@@ -113,9 +124,9 @@ func (fr *FrameReader) Next() (*types.Frame, error) {
 
 	if err != nil {
 		if err == io.EOF {
-			cerr := fr.file.Close()
-			if cerr != nil {
-				return nil, fmt.Errorf("closing file: %w", cerr)
+			cErr := fr.file.Close()
+			if cErr != nil {
+				return nil, fmt.Errorf("closing file: %w", cErr)
 			}
 			return nil, err
 		}
