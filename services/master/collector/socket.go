@@ -17,18 +17,21 @@ func (w *CollectorWorker) connect() error {
 	}
 
 	w.socketForward, err = w.socketContext.NewSocket(zmq.PUSH)
+	if err != nil {
+		return err
+	}
 
 	err = w.socketListen.Bind("inproc://collector")
 	if err != nil {
 		return err
 	}
 
-	err = w.socketStore.Connect("inproc://storage")
+	err = w.socketStore.Bind("inproc://storage")
 	if err != nil {
 		return err
 	}
 
-	err = w.socketForward.Connect("inproc://detector")
+	err = w.socketForward.Bind("inproc://detector")
 	if err != nil {
 		return err
 	}

@@ -53,12 +53,18 @@ func (w *CollectorWorker) listen() error {
 func (w *CollectorWorker) forwardPlayerPositions(frameIdx int, players []types.Player) error {
 	for _, p := range players {
 
-		_, err := w.socketStore.Send("player", zmq.SNDMORE)
+		message := []any{
+			"player",
+			frameIdx,
+			p.PlayerId,
+			fmt.Sprintf("%f;%f", p.Xyz[0], p.Xyz[1]),
+		}
+
+		_, err := w.socketStore.SendMessage(message)
 		if err != nil {
 			return err
 		}
-
-		_, err = w.socketStore.SendMessage(frameIdx, p.PlayerId, fmt.Sprintf("%f;%f", p.Xyz[0], p.Xyz[1]))
+		_, err = w.socketForward.SendMessage(message)
 		if err != nil {
 			return err
 		}
