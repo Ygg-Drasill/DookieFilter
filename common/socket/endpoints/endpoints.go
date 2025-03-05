@@ -25,5 +25,5 @@ const (
 )
 
 func InProcessEndpoint(endpoint SocketEndpoint) string {
-	return fmt.Sprintf("inproc://collector/%s", endpoint)
+	return fmt.Sprintf("inproc://%s", endpoint)
 }
