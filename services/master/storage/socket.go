@@ -7,12 +7,12 @@ import (
 
 func (w *StorageWorker) connect() error {
 	var err error
-	w.socketConsume, err = w.socketContext.NewSocket(zmq.PULL)
+	w.socketConsume, err = w.SocketContext.NewSocket(zmq.PULL)
 	if err != nil {
 		return err
 	}
 
-	w.socketProvide, err = w.socketContext.NewSocket(zmq.REP)
+	w.socketProvide, err = w.SocketContext.NewSocket(zmq.REP)
 	if err != nil {
 		return err
 	}
@@ -34,10 +34,10 @@ func (w *StorageWorker) close() {
 	var err error
 	err = w.socketConsume.Close()
 	if err != nil {
-		w.logger.Error("failed to close socket", "error", err.Error())
+		w.Logger.Error("failed to close socket", "error", err.Error())
 	}
 	err = w.socketProvide.Close()
 	if err != nil {
-		w.logger.Error("failed to close socket", "error", err.Error())
+		w.Logger.Error("failed to close socket", "error", err.Error())
 	}
 }
