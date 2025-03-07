@@ -1,46 +1,39 @@
 package filter
 
 import (
-	"github.com/go-echarts/go-echarts/v2/charts"
-	"github.com/go-echarts/go-echarts/v2/opts"
-	"math/rand"
-	"net/http"
+	"gonum.org/v1/plot"
+	"gonum.org/v1/plot/plotter"
+	"gonum.org/v1/plot/vg"
+	"log"
 )
 
-func httpserver(w http.ResponseWriter, _ *http.Request) {
-	// create a new line instance
-	line := charts.NewLine()
-	// set some global options like Title/Legend/ToolTip or anything else
+func ShowGraph(data []float64, label string) {
 
-	line.SetGlobalOptions(
-		charts.WithTitleOpts(opts.Title{Title: "basic line example", Subtitle: "This is the subtitle."}),
-	)
+	TestXdata, TestYdata, _ := splitIntoThree(data)
 
-	line.SetXAxis(fruits).
-		AddSeries("Category A", generateLineItems())
-	line.SetGlobalOptions(
-		charts.WithYAxisOpts(opts.YAxis{}))
-
-	line.Render(w)
-}
-
-var (
-	itemCntLine = 6
-	fruits      = []string{"Apple", "Banana", "Peach ", "Lemon", "Pear", "Cherry"}
-)
-
-func generateLineItems() []opts.LineData {
-	items := make([]opts.LineData, 0)
-	for i := 0; i < itemCntLine; i++ {
-		items = append(items, opts.LineData{Value: rand.Intn(300)})
+	// Convert positions to plotter.XYs
+	pts := make(plotter.XYs, len(TestYdata))
+	for i, _ := range TestXdata {
+		pts[i].X = TestYdata[i]
+		pts[i].Y = TestYdata[i]
 	}
-	return items
-}
 
-func generateLineData(data []float32) []opts.LineData {
-	items := make([]opts.LineData, 0)
-	for i := 0; i < len(data); i++ {
-		items = append(items, opts.LineData{Value: data[i]})
+	// Create a new plot
+	p := plot.New()
+	p.Title.Text = "Soccer Player Positions"
+	p.X.Label.Text = "X Position"
+	p.Y.Label.Text = "Y Position"
+
+	// Create scatter plot
+	s, err := plotter.NewScatter(pts)
+	if err != nil {
+		log.Fatal(err)
 	}
-	return items
+
+	p.Add(s)
+
+	// Save the plot to a PNG file
+	if err := p.Save(6*vg.Inch, 6*vg.Inch, label); err != nil {
+		log.Fatal(err)
+	}
 }

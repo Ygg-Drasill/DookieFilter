@@ -5,7 +5,7 @@ go 1.23.4
 require (
 	github.com/Ygg-Drasill/DookieFilter/common v0.0.0-20250220144710-8584714f1982
 	github.com/hajimehoshi/ebiten/v2 v2.8.6
-	golang.org/x/image v0.20.0
+	golang.org/x/image v0.21.0
 )
 
 require (
@@ -35,5 +35,5 @@ replace github.com/Ygg-Drasill/DookieFilter/common => ../common
 
 require (
 	github.com/go-echarts/go-echarts v1.0.0 // indirect
-    github.com/go-echarts/go-echarts/v2 v2.5.1 // indirect
+	github.com/go-echarts/go-echarts/v2 v2.5.1 // indirect
 )

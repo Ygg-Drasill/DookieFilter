@@ -2,7 +2,6 @@ package filter
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -13,6 +12,7 @@ import (
 type Position struct {
 	X float64 `json:"x"`
 	Y float64 `json:"y"`
+	Z float64 `json:"z"`
 }
 
 // Data struct represents the structure of the JSON file
@@ -42,38 +42,32 @@ func jsonReader(jsonfile string) []float64 {
 	}
 
 	// Convert to a float64 slice
-	var positionsArray []float64
+	var PositionsArray []float64
+	//var yPositionsArray []float64
 	for _, pos := range data.Positions {
-		positionsArray = append(positionsArray, pos.X, pos.Y)
+		PositionsArray = append(PositionsArray, pos.X, pos.Y, pos.Z)
+
 	}
 
-	// Print the result
-	fmt.Println("Test data: ", positionsArray)
-	return positionsArray
+	//var sArray = PlayerPosition{xPositionsArray, yPositionsArray}
+
+	return PositionsArray
 }
 
 func TestFilter(t *testing.T) {
-	// Simulated noisy soccer player trajectory (X, Y coordinates)
-	xData := []float64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-	yData := []float64{0, 1.2, 1.8, 3.1, 3.9, 5.1, 6.2, 7.1, 8.5, 9.9, 11.0}
 
+	//Reads data from json file
 	data := jsonReader("soccer_player_positions.json")
 
-	fmt.Println("Test data: ", data)
-
 	// Apply Savitzky-Golay filter to smooth the trajectory
-	smoothX := savitzkyGolayFilter(xData)
-	smoothY := savitzkyGolayFilter(yData)
+	smoothData := savitzkyGolayFilter(data)
 
-	// Printed noisy soccer player trajectory (X, Y coordinates)
-	fmt.Println("Noisy X:", xData)
-	fmt.Println("Noisy Y:", yData)
+	// labels for the graph files
+	var labelSmooth = "PlayerPosition/player_positions_smooth.png"
+	var labelUnsmooth = "PlayerPosition/player_positions_unsmooth.png"
 
-	// Print smoothed values
-	fmt.Println("Smoothed X:", smoothX)
-	fmt.Println("Smoothed Y:", smoothY)
+	// Used to visualize the smoothed data.
+	ShowGraph(smoothData, labelSmooth)
+	ShowGraph(data, labelUnsmooth)
 
-	//Enables the display of the graph
-	//http.HandleFunc("/", httpserver)
-	//http.ListenAndServe(":8081", nil)
 }
