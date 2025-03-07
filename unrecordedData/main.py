@@ -32,7 +32,4 @@ if __name__ == "__main__":
     plt.title("Player Positions")
     plt.legend()
     plt.grid()
-
-    # Example plot with lines, can be removed if not necessary
-    plt.plot([1, 2, 3, 4], [10, 20, 25, 30])
     plt.show()
