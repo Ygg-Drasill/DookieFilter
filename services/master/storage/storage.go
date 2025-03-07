@@ -15,6 +15,7 @@ type Worker struct {
 
 	bufferSize int
 	players    map[string]pringleBuffer.PringleBuffer[types.PlayerPosition]
+	mutex      sync.Mutex
 }
 
 func New(ctx *zmq.Context, options ...func(worker *Worker)) *Worker {
