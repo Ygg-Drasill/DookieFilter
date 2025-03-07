@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: check-json-files
+        name: Check for .json and .jsonl files
+        entry: python3 .pre-commit-hooks/check_for_restricted_files.py
+        language: system
+        types: [file]
+        pass_filenames: true

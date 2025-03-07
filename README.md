@@ -1,6 +1,21 @@
 # DookieFilter
 
+> [!IMPORTANT]  
+> Ensure that pre-commit hooks are installed before committing changes.
 
+## Install and use pre-commit hooks
+
+```bash
+pip install pre-commit
+```
+
+
+```bash
+pre-commit install
+```
+
+
+## Architecture
 ```mermaid
 graph TD;
     DataStream((("Data")));
