@@ -78,27 +78,40 @@ func SerializeFrame(frame SmallFrame) string {
 }
 
 func DeserializeFrame(data string) SmallFrame {
+	frame := SmallFrame{
+		Players: make([]PlayerPosition, 0),
+		Ball:    Position{},
+	}
+	if data == "" {
+		return frame
+	}
 	frameIdxAndData := strings.Split(data, ":")
 	frameIdx, _ := strconv.Atoi(frameIdxAndData[0])
-	allPlayerParts := strings.Split(frameIdxAndData[1], ",")
-	players := make([]PlayerPosition, len(allPlayerParts))
-	for i, playerPart := range allPlayerParts {
-		playerData := strings.Split(playerPart, ";")
-		x, _ := strconv.ParseFloat(playerData[1], 64)
-		y, _ := strconv.ParseFloat(playerData[2], 64)
-		player := PlayerPosition{
-			PlayerId: playerData[0],
-			Position: Position{
-				X: x,
-				Y: y,
-			},
-		}
-		players[i] = player
+	frame.FrameIdx = frameIdx
+
+	if frameIdxAndData[1] != "" {
+		ballData := strings.Split(frameIdxAndData[1], ";")
+		frame.Ball.X, _ = strconv.ParseFloat(ballData[0], 64)
+		frame.Ball.Y, _ = strconv.ParseFloat(ballData[1], 64)
 	}
 
-	return SmallFrame{
-		FrameIdx: frameIdx,
-		Players:  players,
-		Ball:     Position{},
+	if frameIdxAndData[2] != "" {
+		allPlayersData := strings.Split(frameIdxAndData[2], ",")
+		frame.Players = make([]PlayerPosition, len(allPlayersData))
+		for i, playerPart := range allPlayersData {
+			playerData := strings.Split(playerPart, ";")
+			x, _ := strconv.ParseFloat(playerData[1], 64)
+			y, _ := strconv.ParseFloat(playerData[2], 64)
+			player := PlayerPosition{
+				PlayerId: playerData[0],
+				Position: Position{
+					X: x,
+					Y: y,
+				},
+			}
+			frame.Players[i] = player
+		}
 	}
+
+	return frame
 }

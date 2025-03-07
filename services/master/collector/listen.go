@@ -51,12 +51,12 @@ func (w *Worker) forwardFrame(frame types.SmallFrame) error {
 		types.SerializeFrame(frame),
 	}
 
-	_, err := w.socketStore.SendMessage(message)
+	_, err := w.socketStore.SendMessage(message...)
 	if err != nil {
 		return err
 	}
 
-	_, err = w.socketDetector.SendMessage(message)
+	_, err = w.socketDetector.SendMessage(message...)
 	if err != nil {
 		return err
 	}

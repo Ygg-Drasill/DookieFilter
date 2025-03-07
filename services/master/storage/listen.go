@@ -2,6 +2,7 @@ package storage
 
 import (
 	"github.com/Ygg-Drasill/DookieFilter/common/types"
+	zmq "github.com/pebbe/zmq4"
 	"strings"
 	"sync"
 )
@@ -9,11 +10,15 @@ import (
 func (w *Worker) listenConsume(wg *sync.WaitGroup) {
 	defer wg.Done()
 	for {
+		topic, err := w.socketConsume.Recv(zmq.SNDMORE)
+		if err != nil {
+			w.Logger.Error("Failed to receive topic")
+		}
 		message, err := w.socketConsume.RecvMessage(0)
 		if err != nil {
 			w.Logger.Error("Error receiving message:", "error", err.Error())
 		}
-		topic := message[0]
+
 		if topic == "frame" {
 			frame := types.DeserializeFrame(strings.Join(message[1:], ""))
 			for _, player := range frame.Players {

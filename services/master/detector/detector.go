@@ -50,10 +50,14 @@ func (w *Worker) Run(wg *sync.WaitGroup) {
 	}
 }
 
-const JumpThreshold = 2 //TODO: change me
+const JumpThreshold = 50 //TODO: change me
 
 func (w *Worker) detect(frame types.SmallFrame) {
 	prevFrame, err := w.stateBuffer.Get(pringleBuffer.Key(frame.FrameIdx - 1))
+	if err != nil {
+		w.Logger.Warn("No previous frame to compare")
+		return
+	}
 	compareMap := make(map[string][]types.PlayerPosition)
 	if err != nil {
 		w.Logger.Error("Failed to get previous frame", "error", err)
