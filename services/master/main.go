@@ -1,36 +1,54 @@
 package main
 
 import (
-    "github.com/Ygg-Drasill/DookieFilter/common/logger"
-    "github.com/Ygg-Drasill/DookieFilter/services/master/collector"
-    "github.com/Ygg-Drasill/DookieFilter/services/master/detector"
-    "github.com/Ygg-Drasill/DookieFilter/services/master/storage"
-    "github.com/Ygg-Drasill/DookieFilter/services/master/worker"
-    zmq "github.com/pebbe/zmq4"
-    "log/slog"
+	"github.com/Ygg-Drasill/DookieFilter/common/frameReader"
+	"github.com/Ygg-Drasill/DookieFilter/common/logger"
+	"github.com/Ygg-Drasill/DookieFilter/services/master/collector"
+	"github.com/Ygg-Drasill/DookieFilter/services/master/data"
+	"github.com/Ygg-Drasill/DookieFilter/services/master/detector"
+	"github.com/Ygg-Drasill/DookieFilter/services/master/storage"
+	"github.com/Ygg-Drasill/DookieFilter/services/master/worker"
+	"github.com/joho/godotenv"
+	zmq "github.com/pebbe/zmq4"
+	"log/slog"
+	"os"
 )
 
 func init() {
-    slog.SetDefault(logger.New("master", "DEBUG"))
+	slog.SetDefault(logger.New("master", "DEBUG"))
 }
 
 const dataWindowSize = 30 * 25 //seconds * frames per seconds
 
 func main() {
-    slog.Info("Starting master service")
-    socketCtx, err := zmq.NewContext()
-    if err != nil {
-        slog.Error(err.Error())
-    }
+	err := godotenv.Load(".env")
+	if err != nil {
+		slog.Error("Failed to load env variables")
+		return
+	}
+	slog.Info("Starting master service")
+	socketCtx, err := zmq.NewContext()
+	if err != nil {
+		slog.Error(err.Error())
+	}
 
-    workers := worker.NewPool()
+	workers := worker.NewPool()
 
-    workers.Add(collector.New(socketCtx))
+	dataPath := os.Getenv("MATCH_FILE")
+	fr, err := frameReader.New(dataPath)
+	err = fr.GoToFrame(fr.FrameCount() / 2)
+	if err != nil {
+		slog.Error("Failed to make frame loader", "error", err.Error())
+		return
+	}
+	workers.Add(data.New(socketCtx, data.WithFrameLoader(fr)))
 
-    workers.Add(storage.New(socketCtx,
-        storage.WithBufferSize(1024)))
+	workers.Add(collector.New(socketCtx))
 
-    workers.Add(detector.New(socketCtx))
+	workers.Add(storage.New(socketCtx,
+		storage.WithBufferSize(1024)))
 
-    workers.Wait()
+	workers.Add(detector.New(socketCtx))
+
+	workers.Wait()
 }

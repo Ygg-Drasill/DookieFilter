@@ -5,7 +5,7 @@ import (
 	zmq "github.com/pebbe/zmq4"
 )
 
-func (w *DetectorWorker) connect() error {
+func (w *Worker) connect() error {
 	var err error
 	w.socketListen, err = w.SocketContext.NewSocket(zmq.PULL)
 	if err != nil {
@@ -20,7 +20,7 @@ func (w *DetectorWorker) connect() error {
 	return nil
 }
 
-func (w *DetectorWorker) close() {
+func (w *Worker) close() {
 	err := w.socketListen.Close()
 	if err != nil {
 		w.Logger.Warn("failed to close socket (forward)", "error", err.Error())

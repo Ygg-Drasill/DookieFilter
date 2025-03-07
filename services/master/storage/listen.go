@@ -1,46 +1,55 @@
 package storage
 
 import (
-	"github.com/Ygg-Drasill/DookieFilter/common/types"
-	"strconv"
-	"strings"
-	"sync"
+    "github.com/Ygg-Drasill/DookieFilter/common/types"
+    zmq "github.com/pebbe/zmq4"
+    "strings"
+    "sync"
 )
 
-func (w *StorageWorker) listenConsume(wg *sync.WaitGroup) {
-	defer wg.Done()
-	for {
-		message, err := w.socketConsume.RecvMessage(0)
-		if err != nil {
-			w.Logger.Error("Error receiving message:", "error", err.Error())
-		}
-		topic := message[0]
-		if topic == "player" {
-			frameIdx, err := strconv.Atoi(message[1])
-			if err != nil {
-				w.Logger.Error("Failed to parse player id", "error", err.Error())
-				return
-			}
-			playerBuffer := w.players[message[2]]
-			xy := strings.Split(message[3], ";")
-			x, err := strconv.ParseFloat(xy[0], 64)
-			y, err := strconv.ParseFloat(xy[1], 64)
-			if err != nil {
-				w.Logger.Error("Failed to parse player coordinates", "error", err.Error())
-				return
-			}
-			position := types.PlayerPosition{
-				FrameIdx: frameIdx,
-				X:        x,
-				Y:        y,
-			}
+func (w *Worker) listenConsume(wg *sync.WaitGroup) {
+    defer wg.Done()
+    for {
+        topic, err := w.socketConsume.Recv(zmq.SNDMORE)
+        if err != nil {
+            w.Logger.Error("Failed to receive topic")
+        }
+        message, err := w.socketConsume.RecvMessage(0)
+        if err != nil {
+            w.Logger.Error("Error receiving message:", "error", err.Error())
+        }
 
-			playerBuffer.Insert(position)
-			w.Logger.Debug("Player buffer status", "count", playerBuffer.Count())
-		}
-	}
+        if topic == "frame" {
+            frame := types.DeserializeFrame(strings.Join(message[1:], ""))
+            for _, player := range frame.Players {
+                w.mutex.Lock()
+                buffer := w.players[player.PlayerId]
+                buffer.Insert(player)
+                w.mutex.Unlock()
+            }
+        }
+    }
 }
 
-func (w *StorageWorker) listenProvide(wg *sync.WaitGroup) {
-	defer wg.Done()
+func (w *Worker) listenProvide(wg *sync.WaitGroup) {
+    defer wg.Done()
+
+    for {
+        topic, err := w.socketProvide.Recv(zmq.SNDMORE)
+        if err != nil {
+            w.Logger.Error("Failed to read topic from message")
+        }
+
+        if topic == "playerFrame" {
+
+        }
+
+        if topic == "playerRange" {
+
+        }
+
+        if topic == "playerNumber" {
+
+        }
+    }
 }

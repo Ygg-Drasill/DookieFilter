@@ -5,7 +5,7 @@ import (
 	zmq "github.com/pebbe/zmq4"
 )
 
-func (w *StorageWorker) connect() error {
+func (w *Worker) connect() error {
 	var err error
 	w.socketConsume, err = w.SocketContext.NewSocket(zmq.PULL)
 	if err != nil {
@@ -30,7 +30,7 @@ func (w *StorageWorker) connect() error {
 	return nil
 }
 
-func (w *StorageWorker) close() {
+func (w *Worker) close() {
 	var err error
 	err = w.socketConsume.Close()
 	if err != nil {
