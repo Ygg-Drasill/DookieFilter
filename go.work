@@ -1,0 +1,10 @@
+go 1.24.0
+
+use (
+	./SavitzkyGolayFilter
+	./common
+	./mock/receive
+	./mock/transmit
+	./services/master
+	./visunator
+)
