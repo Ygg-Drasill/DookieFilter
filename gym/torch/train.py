@@ -4,8 +4,6 @@ import torch
 from tqdm import tqdm
 from torch import nn
 
-from sklearn.preprocessing import MinMaxScaler
-
 from torch.utils.data import DataLoader
 from dataloader import MatchDataset
 from model import PlayerPredictor
@@ -18,7 +16,7 @@ if __name__ == '__main__':
     m = PlayerPredictor(device, 3, 16, 4)
     m.to(device)
 
-    learning_rate = 0.001
+    learning_rate = 1e-4
     epochs = 10
     loss_function = nn.MSELoss()
     optimizer = torch.optim.Adam(m.parameters(), lr=learning_rate)
@@ -28,6 +26,9 @@ if __name__ == '__main__':
         running_loss = 0.0
         for batch_index, batch in enumerate(tqdm(dataloader)):
             batch_x, batch_y = batch[0].to(device), batch[1].to(device)
+            if torch.isnan(batch_x).any():
+                continue
+
             output = m(batch_x)
             loss = loss_function(output, batch_y)
             running_loss += loss.item()
