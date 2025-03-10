@@ -11,11 +11,12 @@ class MatchDataset(Dataset):
     frames_per_player: int
     length: int
 
-    def __init__(self, data_path: str, device: torch.device):
-        self.device = device
+    def __init__(self, data_path: str, device: torch.device, sequence_length: int):
         if not os.path.exists(data_path) or os.path.isdir(data_path):
             return
+        self.device = device
         self.data_path = data_path
+        self.sequence_length = sequence_length
         self.match_dataframe = pd.read_csv(self.data_path)
         self.match_dataframe.reset_index()
         self.frames_per_player = len(self.match_dataframe)
@@ -34,13 +35,24 @@ class MatchDataset(Dataset):
         return self.length
 
     def __getitem__(self, idx):
-        player_frame_index = idx % self.frames_per_player
+        player_frame_index = idx % (self.frames_per_player - 1)
         player_number = self.player_numbers[idx // self.frames_per_player]
-        ball, player, home, away = self.get_player_ball__n_nearest(player_frame_index, player_number, 3)
-        sample = [ball, player]
-        for k in dict.keys(home): sample.append(home[k])
-        for k in dict.keys(away): sample.append(away[k])
-        return torch.from_numpy(np.array(sample)).to(self.device)
+
+        offset_low = max(player_frame_index-self.sequence_length, 0)
+        offset_high = player_frame_index
+        sequence = []
+        for sequenced_idx in range(offset_low, offset_high):
+            ball, player, home, away = self.get_player_ball__n_nearest(sequenced_idx, player_number, 3)
+            sample = [player, ball]
+            for k in dict.keys(home): sample.append(home[k])
+            for k in dict.keys(away): sample.append(away[k])
+            sequence.append(sample)
+
+        next_frame = self.match_dataframe.loc[player_frame_index + 1]
+        player_next = np.array([next_frame[player_number + "_x"],
+                                next_frame[player_number + "_y"]])
+        return (torch.from_numpy(np.array(sequence)).to(self.device),
+                torch.from_numpy(np.array(player_next)).to(self.device))
 
     def get_player_ball__n_nearest(self, idx: int, player_number: str, n: int):
         frame_coords = self.collect_coords_at(idx)
@@ -63,7 +75,6 @@ class MatchDataset(Dataset):
         for key in away_closest_keys:
             away[key] = frame_coords[key]
         return ball_coords, player, home, away
-
 
     def collect_coords_at(self, idx: int):
         frame = self.match_dataframe.loc[idx]
