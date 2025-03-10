@@ -61,8 +61,8 @@ class MatchDataset(Dataset):
         next_frame = self.match_dataframe.loc[player_frame_index + 1]
         player_next = np.array([self.normalize_x(next_frame[player_number + "_x"]),
                                 self.normalize_y(next_frame[player_number + "_y"])])
-        return (torch.from_numpy(np.array(sequence)),
-                torch.from_numpy(np.array(player_next)))
+        return (torch.from_numpy(np.array(sequence)).to(torch.float32),
+                torch.from_numpy(np.array(player_next)).to(torch.float32))
 
     def normalize_x(self, x):
         return (x + self.field_x_offset) / self.field_width

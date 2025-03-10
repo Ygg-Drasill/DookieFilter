@@ -2,27 +2,27 @@ import torch
 from torch import nn
 
 class PlayerPredictor(nn.Module):
-    def __init__(self, device, n_nearest_players, n_hidden):
+    def __init__(self, device, n_nearest_players, n_hidden, n_stack):
         super().__init__()
         self.device = device
         self.n_nearest_players = n_nearest_players
         self.n_hidden = n_hidden
+        self.n_stack = n_stack
         # input size is n_nearest_players *2 (home and away) + target player and ball
-        input_size = ((2*n_nearest_players) + 2) * 2
-        self.lstm = nn.LSTM(input_size, n_hidden, 4)
+        self.input_size = ((2*n_nearest_players) + 2) * 2
+        self.lstm = nn.LSTM(self.input_size, n_hidden, n_stack)
         self.linear = nn.Linear(n_hidden, 2)
 
-    def forward(self, x: torch.Tensor, future=0):
-        outputs = []
+    def forward(self, x: torch.Tensor):
         x = x.flatten(start_dim=-2)
-        n_samples = x.size[0]
+        n_samples = x.size(0)
 
-        h_t1 = torch.zeros(n_samples, self.n_hidden, dtype=torch.float32).to(x.device)
-        c_t1 = torch.zeros(n_samples, self.n_hidden, dtype=torch.float32).to(x.device)
-        h_t2 = torch.zeros(n_samples, self.n_hidden, dtype=torch.float32).to(x.device)
-        c_t2 = torch.zeros(n_samples, self.n_hidden, dtype=torch.float32).to(x.device)
+        h0 = torch.zeros(self.n_stack, 2, self.n_hidden, dtype=torch.float32).to(self.device)
+        c0 = torch.zeros(self.n_stack, 2, self.n_hidden, dtype=torch.float32).to(self.device)
 
-        return x
+        out, _ = self.lstm(x, (h0, c0))
+        out = self.linear(out[:, -1, :])
+        return out
 
 
 def input_to_tensor():
