@@ -51,8 +51,8 @@ class MatchDataset(Dataset):
         next_frame = self.match_dataframe.loc[player_frame_index + 1]
         player_next = np.array([next_frame[player_number + "_x"],
                                 next_frame[player_number + "_y"]])
-        return (torch.from_numpy(np.array(sequence)).to(self.device),
-                torch.from_numpy(np.array(player_next)).to(self.device))
+        return (torch.from_numpy(np.array(sequence)),
+                torch.from_numpy(np.array(player_next)))
 
     def get_player_ball__n_nearest(self, idx: int, player_number: str, n: int):
         frame_coords = self.collect_coords_at(idx)
