@@ -9,8 +9,7 @@ class PlayerPredictor(nn.Module):
         self.n_hidden = n_hidden
         # input size is n_nearest_players *2 (home and away) + target player and ball
         input_size = ((2*n_nearest_players) + 2) * 2
-        self.lstm1 = nn.LSTMCell(input_size, n_hidden)
-        self.lstm2 = nn.LSTMCell(n_hidden, n_hidden)
+        self.lstm = nn.LSTM(input_size, n_hidden, 4)
         self.linear = nn.Linear(n_hidden, 2)
 
     def forward(self, x: torch.Tensor, future=0):

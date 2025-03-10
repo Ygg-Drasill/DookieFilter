@@ -3,6 +3,7 @@ import os.path
 import numpy as np
 import pandas as pd
 import torch
+from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import Dataset
 
 class MatchDataset(Dataset):
@@ -10,6 +11,10 @@ class MatchDataset(Dataset):
     player_numbers: list[str]
     frames_per_player: int
     length: int
+    field_width: int = 145
+    field_x_offset = 145/2
+    field_height: int = 68
+    field_y_offset = 68 / 2
 
     def __init__(self, data_path: str, device: torch.device, sequence_length: int):
         if not os.path.exists(data_path) or os.path.isdir(data_path):
@@ -21,6 +26,8 @@ class MatchDataset(Dataset):
         self.match_dataframe.reset_index()
         self.frames_per_player = len(self.match_dataframe)
         self.player_numbers = []
+        self.x_scaler = MinMaxScaler(feature_range=(-145 / 2, 145 / 2))
+        self.y_scaler = MinMaxScaler(feature_range=(-68 / 2, 68 / 2))
         for key in self.match_dataframe.columns:
             key_split = key.split("_")
             player_key = key_split[0] + "_" + key_split[1]
@@ -46,13 +53,21 @@ class MatchDataset(Dataset):
             sample = [player, ball]
             for k in dict.keys(home): sample.append(home[k])
             for k in dict.keys(away): sample.append(away[k])
+            for i in range(len(sample)):
+                sample[i] = [self.normalize_x( sample[i][0]),
+                             self.normalize_y(sample[i][1])]
             sequence.append(sample)
 
         next_frame = self.match_dataframe.loc[player_frame_index + 1]
-        player_next = np.array([next_frame[player_number + "_x"],
-                                next_frame[player_number + "_y"]])
+        player_next = np.array([self.normalize_x(next_frame[player_number + "_x"]),
+                                self.normalize_y(next_frame[player_number + "_y"])])
         return (torch.from_numpy(np.array(sequence)),
                 torch.from_numpy(np.array(player_next)))
+
+    def normalize_x(self, x):
+        return (x + self.field_x_offset) / self.field_width
+    def normalize_y(self, y):
+        return (y + self.field_y_offset) / self.field_height
 
     def get_player_ball__n_nearest(self, idx: int, player_number: str, n: int):
         frame_coords = self.collect_coords_at(idx)
