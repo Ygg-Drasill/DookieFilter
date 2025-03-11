@@ -26,6 +26,7 @@ class MatchDataset(Dataset):
         self.match_dataframe = pd.read_csv(self.data_path)
         self.match_dataframe.reset_index()
         self.frames_per_player = len(self.match_dataframe)
+        self.n_features = 2 + (n_nearest_players*2)
         self.player_numbers = []
         for key in self.match_dataframe.columns:
             key_split = key.split("_")
@@ -35,32 +36,31 @@ class MatchDataset(Dataset):
             if player_key not in self.player_numbers:
                 self.player_numbers.append(player_key)
 
-        self.length = len(self.player_numbers) * len(self.match_dataframe)
+        self.length = len(self.player_numbers) * (len(self.match_dataframe)-self.sequence_length)
 
     def __len__(self):
         return self.length
 
     def __getitem__(self, idx):
-        player_frame_index = idx % (self.frames_per_player - 1)
-        player_number = self.player_numbers[idx // self.frames_per_player]
+        player_number_index = idx // self.frames_per_player
+        player_frame_index = ((idx + player_number_index*self.sequence_length) % (self.frames_per_player - 1))
+        player_number = self.player_numbers[player_number_index]
 
-        offset_low = max(player_frame_index-self.sequence_length, 0)
-        offset_high = player_frame_index
         sequence = []
-        for sequenced_idx in range(offset_low, offset_high):
+        for sequenced_idx in range(player_frame_index-self.sequence_length, player_frame_index):
             ball, player, home, away = self.get_player_ball__n_nearest(sequenced_idx, player_number, self.n_nearest_players)
             sample = [player, ball]
             for k in dict.keys(home): sample.append(home[k])
             for k in dict.keys(away): sample.append(away[k])
             for i in range(len(sample)):
-                sample[i] = [self.normalize_x( sample[i][0]),
+                sample[i] = [self.normalize_x(sample[i][0]),
                              self.normalize_y(sample[i][1])]
             sequence.append(sample)
 
         next_frame = self.match_dataframe.loc[player_frame_index + 1]
         player_next = np.array([self.normalize_x(next_frame[player_number + "_x"]),
                                 self.normalize_y(next_frame[player_number + "_y"])])
-        return (torch.from_numpy(np.array(sequence)).to(torch.float32),
+        return (torch.from_numpy(np.array(sequence).reshape(self.sequence_length,self.n_features,2)).to(torch.float32),
                 torch.from_numpy(np.array(player_next)).to(torch.float32))
 
     def normalize_x(self, x):

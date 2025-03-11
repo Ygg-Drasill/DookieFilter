@@ -7,13 +7,16 @@ from torch import nn
 from torch.utils.data import DataLoader
 from dataloader import MatchDataset
 from model import PlayerPredictor
+from player_dataset import PlayerDataset
 
 if __name__ == '__main__':
+    batch_size = 64
     n_nearest_players = 3
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     sequence_length = 20
-    dataset = MatchDataset(os.path.abspath("../data/chunk_0.csv"), device, sequence_length, n_nearest_players=n_nearest_players)
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=8)
+    player_dataset = PlayerDataset(os.path.abspath("../data/chunk_0.csv"), sequence_length, "h_10", 3)
+    #dataset = MatchDataset(os.path.abspath("../data/chunk_0.csv"), device, sequence_length, n_nearest_players=n_nearest_players)
+    dataloader = DataLoader(player_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
 
     m = PlayerPredictor(device, n_nearest_players, 32, 4)
     m.to(device)
@@ -26,22 +29,21 @@ if __name__ == '__main__':
     for epoch in range(epochs):
         m.train(True)
         running_loss = 0.0
-        progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
+        progress_bar = tqdm(enumerate(dataloader), total=len(dataloader), desc=f"Epoch {epoch + 1}/{epochs}", unit="batch")
         for batch_index, batch in progress_bar:
+            batch_x: torch.Tensor; batch_y: torch.Tensor
             batch_x, batch_y = batch[0].to(device), batch[1].to(device)
             if torch.isnan(batch_x).any() or torch.isnan(batch_y).any():
                 continue
 
             output = m(batch_x)
-            loss = loss_function(output, batch_y)
-            running_loss += loss.item()
-
+            loss = loss_function(output, batch_y); running_loss += loss.item()
             optimizer.zero_grad()
             loss.backward()
             torch.nn.utils.clip_grad_norm_(m.parameters(), max_norm=1.0)
             optimizer.step()
-            if batch_index % 100 == 99:  # print every 100 batches
 
+            if batch_index % 100 == 99:  # print every 100 batches
                 avg_loss_across_batches = running_loss / 100
                 progress_bar.set_postfix({'loss': avg_loss_across_batches})
                 running_loss = 0.0
