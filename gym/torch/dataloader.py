@@ -1,3 +1,4 @@
+import heapq
 import os.path
 
 import numpy as np
@@ -15,11 +16,12 @@ class MatchDataset(Dataset):
     field_height: int = 68
     field_y_offset = 68 / 2
 
-    def __init__(self, data_path: str, device: torch.device, sequence_length: int):
+    def __init__(self, data_path: str, device: torch.device, sequence_length: int, n_nearest_players=3):
         if not os.path.exists(data_path) or os.path.isdir(data_path):
             return
         self.device = device
         self.data_path = data_path
+        self.n_nearest_players = n_nearest_players
         self.sequence_length = sequence_length
         self.match_dataframe = pd.read_csv(self.data_path)
         self.match_dataframe.reset_index()
@@ -46,7 +48,7 @@ class MatchDataset(Dataset):
         offset_high = player_frame_index
         sequence = []
         for sequenced_idx in range(offset_low, offset_high):
-            ball, player, home, away = self.get_player_ball__n_nearest(sequenced_idx, player_number, 3)
+            ball, player, home, away = self.get_player_ball__n_nearest(sequenced_idx, player_number, self.n_nearest_players)
             sample = [player, ball]
             for k in dict.keys(home): sample.append(home[k])
             for k in dict.keys(away): sample.append(away[k])
@@ -73,14 +75,20 @@ class MatchDataset(Dataset):
         ball_coords = frame_coords.pop("ball")
         frame_coords_keys = dict.keys(frame_coords.copy())
         other_keys = frame_coords.copy()
-        player = other_keys.pop(player_number)
-        home_distances, away_distances = {}, {}
-        for other in filter(lambda x: x[0] == "h", other_keys):
-            home_distances[other] = np.linalg.norm(np.array(player) - np.array(other_keys[other]))
-        for other in filter(lambda x: x[0] == "a", other_keys):
-            away_distances[other] = np.linalg.norm(np.array(player) - np.array(other_keys[other]))
-        home_closest_keys = sorted(dict.keys(home_distances), key=lambda x: home_distances[x])[:n]
-        away_closest_keys = sorted(dict.keys(away_distances), key=lambda x: away_distances[x])[:n]
+        player = np.array(other_keys.pop(player_number))
+        home_distances, away_distances = [], []
+
+        for key, coord in other_keys.items():
+            distance = np.linalg.norm(player - np.array(coord))
+            prefix = key[0]
+            if prefix == "h":
+                home_distances.append((distance, key))
+            elif prefix == "a":
+                away_distances.append((distance, key))
+
+        home_closest_keys = [k for _, k in heapq.nsmallest(n, home_distances)]
+        away_closest_keys = [k for _, k in heapq.nsmallest(n, away_distances)]
+
         home, away = {}, {}
         for key in home_closest_keys:
             home[key] = frame_coords[key]

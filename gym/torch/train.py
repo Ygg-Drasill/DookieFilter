@@ -9,11 +9,13 @@ from dataloader import MatchDataset
 from model import PlayerPredictor
 
 if __name__ == '__main__':
+    n_nearest_players = 3
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    dataset = MatchDataset(os.path.abspath("../data/chunk_0.csv"), device, 2)
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=4)
+    sequence_length = 20
+    dataset = MatchDataset(os.path.abspath("../data/chunk_0.csv"), device, sequence_length, n_nearest_players=n_nearest_players)
+    dataloader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=8)
 
-    m = PlayerPredictor(device, 3, 16, 4)
+    m = PlayerPredictor(device, n_nearest_players, 32, 4)
     m.to(device)
 
     learning_rate = 1e-4
@@ -24,7 +26,8 @@ if __name__ == '__main__':
     for epoch in range(epochs):
         m.train(True)
         running_loss = 0.0
-        for batch_index, batch in enumerate(dataloader):# enumerate(tqdm(dataloader)):
+        progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
+        for batch_index, batch in progress_bar:
             batch_x, batch_y = batch[0].to(device), batch[1].to(device)
             if torch.isnan(batch_x).any() or torch.isnan(batch_y).any():
                 continue
@@ -40,6 +43,5 @@ if __name__ == '__main__':
             if batch_index % 100 == 99:  # print every 100 batches
 
                 avg_loss_across_batches = running_loss / 100
-                print('Batch {0}, Loss: {1:.3f}'.format(batch_index + 1,
-                                                        avg_loss_across_batches))
+                progress_bar.set_postfix({'loss': avg_loss_across_batches})
                 running_loss = 0.0
