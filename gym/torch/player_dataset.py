@@ -28,7 +28,7 @@ class PlayerDataset(Dataset):
                                                             self.raw_dataframe[player_number + "_y"]])
 
         self.data = []
-        for i, pos in enumerate(tqdm(self.player, unit="row", desc="calculating rows")):
+        for i, pos in enumerate(tqdm(self.player, unit="row", desc="calculating rows", ncols=200)):
             home_distances, away_distances = [], []
             for key, coords in other_players.items():
                 other_coords = np.array(coords[i])
