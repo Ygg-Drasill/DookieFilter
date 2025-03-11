@@ -3,7 +3,6 @@ import os.path
 import numpy as np
 import pandas as pd
 import torch
-from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import Dataset
 
 class MatchDataset(Dataset):
@@ -26,8 +25,6 @@ class MatchDataset(Dataset):
         self.match_dataframe.reset_index()
         self.frames_per_player = len(self.match_dataframe)
         self.player_numbers = []
-        self.x_scaler = MinMaxScaler(feature_range=(-145 / 2, 145 / 2))
-        self.y_scaler = MinMaxScaler(feature_range=(-68 / 2, 68 / 2))
         for key in self.match_dataframe.columns:
             key_split = key.split("_")
             player_key = key_split[0] + "_" + key_split[1]

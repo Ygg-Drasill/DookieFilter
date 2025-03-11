@@ -3,8 +3,6 @@ import json
 import os
 import sys
 import numpy as np
-import matplotlib.pyplot as plt
-from numpy.ma.core import append
 
 data_path = sys.argv[1]
 output_target = sys.argv[2]

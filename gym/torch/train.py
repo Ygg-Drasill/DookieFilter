@@ -11,7 +11,7 @@ from model import PlayerPredictor
 if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     dataset = MatchDataset(os.path.abspath("../data/chunk_0.csv"), device, 2)
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=12)
+    dataloader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=4)
 
     m = PlayerPredictor(device, 3, 16, 4)
     m.to(device)
@@ -24,9 +24,9 @@ if __name__ == '__main__':
     for epoch in range(epochs):
         m.train(True)
         running_loss = 0.0
-        for batch_index, batch in enumerate(tqdm(dataloader)):
+        for batch_index, batch in enumerate(dataloader):# enumerate(tqdm(dataloader)):
             batch_x, batch_y = batch[0].to(device), batch[1].to(device)
-            if torch.isnan(batch_x).any():
+            if torch.isnan(batch_x).any() or torch.isnan(batch_y).any():
                 continue
 
             output = m(batch_x)
