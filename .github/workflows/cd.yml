@@ -55,6 +55,8 @@ jobs:
           key: go-mod-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             go-mod-${{ runner.os }}-
+      - name: Install libzmq3-dev
+        run: sudo apt install libzmq3-dev
       - name: Build Transmit
         working-directory: ./mock/transmit
         run: go build -v ./...
@@ -71,6 +73,8 @@ jobs:
           key: go-mod-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             go-mod-${{ runner.os }}-
+      - name: Install libzmq3-dev
+        run: sudo apt install libzmq3-dev
       - name: Build Master
         working-directory: ./services/master
         run: go build -v ./...
@@ -87,8 +91,8 @@ jobs:
           key: go-mod-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             go-mod-${{ runner.os }}-
-      - name: Install GLFW/X11 Dependencies
-        run: sudo apt update && sudo apt install -y libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libgl1-mesa-dev libxi-dev
+      - name: Install Dependencies
+        run: sudo apt install -y libc6-dev libgl1-mesa-dev libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxxf86vm-dev libasound2-dev pkg-config
       - name: Build Visunator
         working-directory: ./visunator
         run: go build -v ./...
