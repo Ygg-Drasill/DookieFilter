@@ -17,9 +17,15 @@ jobs:
       uses: actions/setup-go@v4
       with:
         go-version: '1.24'
-        
-    - name: Test
-      run: go test -v ./...
 
-    - name: Build
-      run: go build -v ./...
+    - name: Test Common
+      run: go test -v ./common/...
+
+    - name: Build Transmit
+      run: go build -v ./mock/transmit/...
+
+    - name: Build Master
+      run: go build -v ./services/master/...
+
+    - name: Build Visunator
+      run: go build -v ./visunator/...
