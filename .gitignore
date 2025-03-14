@@ -1,2 +1,4 @@
 *.jsonl
 .idea
+gym/torch/__pycache__
+gym/data
