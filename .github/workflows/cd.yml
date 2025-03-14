@@ -18,6 +18,9 @@ jobs:
       with:
         go-version: '1.24'
 
+    - name: Install libzmq3-dev
+      run: sudo apt install libzmq3-dev
+
     - name: Test Common
       working-directory: ./common
       run: go test -v ./...
