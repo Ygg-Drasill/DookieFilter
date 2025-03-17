@@ -6,7 +6,7 @@ import torch
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
-from utils.data import *
+from gym.utils.data import *
 
 
 class PlayerDataset(Dataset):
@@ -73,6 +73,6 @@ class PlayerDataset(Dataset):
     def __getitem__(self, idx):
         seq = self.data[idx:idx + self.sequence_length]
         target = self.player[idx + self.sequence_length]
-        target_normalized = [self.normalize_x(target[0]), self.normalize_y(target[1])]
+        target_normalized = [normalize_x(target[0]), normalize_y(target[1])]
         return (torch.from_numpy(np.array(seq)).to(dtype=torch.float32),
                 torch.from_numpy(np.array(target_normalized)).to(dtype=torch.float32))
