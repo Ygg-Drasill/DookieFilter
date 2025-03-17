@@ -2,6 +2,9 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from torch import nn
+from typing import Callable
+
+from gym.board_logger import BoardLogger
 
 progress_bar_columns = 200
 
@@ -11,7 +14,8 @@ def train_epoch(epoch: int,
                 dataloader: DataLoader,
                 loss_function,
                 optimizer:torch.optim.Optimizer,
-                device:torch.device):
+                device:torch.device,
+                board_lgger: BoardLogger = None):
 
     model.train(True)
     progress_dataloader = tqdm(dataloader,
@@ -29,7 +33,7 @@ def train_epoch(epoch: int,
             continue
 
         output = model(batch_x)
-        loss = loss_function(output, batch_y);
+        loss = loss_function(output, batch_y)
         running_loss += loss.item()
         total += 1
         optimizer.zero_grad()
@@ -39,6 +43,8 @@ def train_epoch(epoch: int,
 
         avg_loss_across_batches = running_loss / total
         progress_dataloader.set_postfix({'loss': avg_loss_across_batches})
+        if board_lgger is not None:
+            board_lgger.log("Loss/train", loss)
     return running_loss / total
 
 def validate_epoch(epoch: int,
@@ -46,7 +52,8 @@ def validate_epoch(epoch: int,
                    model: nn.Module,
                    dataloader: DataLoader,
                    loss_function,
-                   device:torch.device):
+                   device:torch.device,
+                   board_lgger: BoardLogger = None):
 
     progress_dataloader = tqdm(dataloader,
                                ncols=progress_bar_columns,
@@ -69,7 +76,8 @@ def validate_epoch(epoch: int,
             loss = loss_function(output, batch_y);
             running_loss += loss.item()
             total += 1
-
         avg_loss_across_batches = running_loss / total
         progress_dataloader.set_postfix({'loss': avg_loss_across_batches})
+        if board_lgger is not None:
+            board_lgger.log("Loss/test", loss)
     return running_loss / total
