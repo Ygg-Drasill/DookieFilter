@@ -12,7 +12,7 @@ from model.player_predictor import PlayerPredictor
 
 if __name__ == "__main__":
     n_nearest_players = 4
-    model_path = os.path.abspath("./model.pth")#"../../model/out/model.pth")
+    model_path = os.path.abspath("../runs/models/model.pth")#"../../model/out/model.pth")
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = PlayerPredictor(device, n_nearest_players, 128, 8)
     print(sum(p.numel() for p in model.parameters()))
