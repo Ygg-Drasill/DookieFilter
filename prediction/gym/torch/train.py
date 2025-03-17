@@ -18,7 +18,7 @@ def format_model_name(n_nearest_players, stack_size, hidden_size, lr, epochs, ba
     return f'{n_nearest_players}-{stack_size}-{hidden_size}-{lr}-{epochs}-{batch_size}-{parameters}'
 
 if __name__ == '__main__':
-    target_directory = os.path.abspath(f'runs')
+    target_directory = os.path.abspath(f'../runs')
     summary_writer = SummaryWriter(f'{target_directory}/board')
 
     torch.random.seed()
@@ -60,7 +60,6 @@ if __name__ == '__main__':
         validation_losses.append(vl)
         steps += 1
 
-    torch.save(model.state_dict(), f'{target_directory}/{format_model_name(n_nearest_players, stack_size, hidden_size, learning_rate, epochs, batch_size,)}.pt')
-
-    plt.plot(np.linspace(1, epochs, epochs-1), np.array([train_losses, validation_losses]).T, label="train")
-    plt.show()
+    n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    torch.save(model.state_dict(),
+               f'{target_directory}/out/{format_model_name(n_nearest_players, stack_size, hidden_size, learning_rate, epochs, batch_size, n_parameters)}.pt')
