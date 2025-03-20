@@ -33,6 +33,11 @@ func (frame SmallFrame) Key() pringleBuffer.Key {
 }
 
 func SmallFromBigFrame(frame Frame) SmallFrame {
+	if frame.HomePlayers == nil ||
+		frame.AwayPlayers == nil ||
+		frame.Ball.Xyz == nil {
+		return SmallFrame{}
+	}
 	smallFrame := SmallFrame{
 		FrameIdx: frame.FrameIdx,
 		Players:  make([]PlayerPosition, 0),
