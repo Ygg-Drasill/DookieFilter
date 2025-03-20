@@ -2,10 +2,13 @@ package data
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/Ygg-Drasill/DookieFilter/common/socket/endpoints"
 	"github.com/Ygg-Drasill/DookieFilter/common/types"
 	"github.com/Ygg-Drasill/DookieFilter/services/master/worker"
 	zmq "github.com/pebbe/zmq4"
+	"io"
+	"os"
 	"sync"
 	"time"
 )
@@ -45,8 +48,16 @@ func (w Worker) Run(wg *sync.WaitGroup) {
 		}
 		lastTime = currentTime
 		frame, err := w.frameLoader.Next()
+		if errors.Is(err, io.EOF) {
+			w.Logger.Warn("EOF", "error", err.Error())
+			continue
+		}
+		if errors.Is(err, os.ErrClosed) {
+			w.Logger.Warn("FrameLoader closed", "error", err.Error())
+			break
+		}
 		if err != nil {
-			w.Logger.Error("Failed to read next frame")
+			w.Logger.Error("Failed to read next frame", "error", err.Error())
 		}
 
 		message, err := json.Marshal(frame)

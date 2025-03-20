@@ -28,6 +28,9 @@ func (w *Worker) listen() error {
 		}
 
 		frame := types.SmallFromBigFrame(rawFrame)
+		if frame.Players == nil {
+			return nil
+		}
 
 		err = w.forwardFrame(frame)
 		if err != nil {
