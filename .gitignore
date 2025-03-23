@@ -1,3 +1,4 @@
 *.jsonl
 .idea
 *__pycache__
+prediction/gym/runs/player
