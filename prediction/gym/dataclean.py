@@ -54,16 +54,15 @@ for line in file:
     for seperated_frame in packet["data"]:
         if "frameIdx" not in dict.keys(seperated_frame):
             print("signal")
-            if game_active:
-                save_game_chunk(chunk_index, output_target + "/", data_fields, data)
-                chunk_index += 1
-                data = []
-            game_active = not game_active
+
+            save_game_chunk(chunk_index, output_target + "/", data_fields, data)
+            chunk_index += 1
+            data = []
+
             continue
         if len(seperated_frame["homePlayers"]) == 0 or len(seperated_frame["awayPlayers"]) == 0:
             continue
-        if not game_active:
-            continue
+
 
         idx = seperated_frame["frameIdx"]
         frame_idx.append(idx)
