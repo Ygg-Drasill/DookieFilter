@@ -1,4 +1,5 @@
 import csv
+from chunk import Chunk
 from typing import Any
 
 class Chunk:
