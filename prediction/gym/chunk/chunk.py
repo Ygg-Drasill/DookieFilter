@@ -1,18 +1,11 @@
 import csv
-from chunk import Chunk
 from typing import Any
 
-
 class Chunk:
-
-
     def __init__(self):
         self.count = 0
         self.data_fields = ["frame_index", "ball_x", "ball_y"]
         self.data: list[dict[str, Any]] = []
-
-
-
 
     def add_data(self, data: dict[str, Any]) -> None:
         self.data.append(data)
@@ -34,15 +27,12 @@ class Chunk:
 
         self.data.append(row)
 
-
-
     def write_to_file(self, output_target : str):
         csv_file = open(output_target, "w")
         writer = csv.DictWriter(csv_file, fieldnames=self.data_fields)
         writer.writeheader()
         writer.writerows(self.data)
         csv_file.close()
-
 
     def filter(self) -> list[Chunk]:
 
@@ -57,7 +47,6 @@ class Chunk:
                 continue
 
             current_chunk.add_data(row)
-
 
     def add_player_data(self, player_data, row, player_prefix: str):
         player_coords, player_number = player_data["xyz"], player_data["number"]
