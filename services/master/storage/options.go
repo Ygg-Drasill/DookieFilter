@@ -1,7 +1,7 @@
 package storage
 
-func WithBufferSize(size int) func(worker *StorageWorker) {
-	return func(worker *StorageWorker) {
+func WithBufferSize(size int) func(worker *Worker) {
+	return func(worker *Worker) {
 		worker.bufferSize = size
 	}
 }

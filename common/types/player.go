@@ -7,62 +7,116 @@ import (
 	"strings"
 )
 
-type Player struct {
-	Number   string    `json:"number"`
-	OptaId   string    `json:"optaId"`
-	PlayerId string    `json:"playerId"`
-	Speed    float64   `json:"speed"`
-	Xyz      []float64 `json:"xyz"`
+type SmallFrame struct {
+	FrameIdx int
+	Players  []PlayerPosition
+	Ball     Position
+}
+
+type Position struct {
+	X float64
+	Y float64
 }
 
 type PlayerPosition struct {
-	FrameIdx int     `json:"frameIdx"`
-	X        float64 `json:"x"`
-	Y        float64 `json:"y"`
+	Position
+	FrameIdx int
+	PlayerId string
 }
 
 func (pp PlayerPosition) Key() pringleBuffer.Key {
 	return pringleBuffer.Key(pp.FrameIdx)
 }
 
+func (frame SmallFrame) Key() pringleBuffer.Key {
+	return pringleBuffer.Key(frame.FrameIdx)
+}
+
+func SmallFromBigFrame(frame Frame) SmallFrame {
+	if frame.HomePlayers == nil ||
+		frame.AwayPlayers == nil ||
+		frame.Ball.Xyz == nil {
+		return SmallFrame{}
+	}
+	smallFrame := SmallFrame{
+		FrameIdx: frame.FrameIdx,
+		Players:  make([]PlayerPosition, 0),
+		Ball: Position{
+			X: frame.Ball.Xyz[0],
+			Y: frame.Ball.Xyz[1],
+		},
+	}
+
+	for _, player := range frame.HomePlayers {
+		smallFrame.Players = append(smallFrame.Players, PositionFromPlayer(player, frame.FrameIdx))
+	}
+	for _, player := range frame.AwayPlayers {
+		smallFrame.Players = append(smallFrame.Players, PositionFromPlayer(player, frame.FrameIdx))
+	}
+
+	return smallFrame
+}
+
 func PositionFromPlayer(player Player, frameIdx int) PlayerPosition {
 	return PlayerPosition{
 		FrameIdx: frameIdx,
-		X:        player.Xyz[0],
-		Y:        player.Xyz[1],
+		PlayerId: player.PlayerId,
+		Position: Position{
+			X: player.Xyz[0],
+			Y: player.Xyz[1],
+		},
 	}
 }
 
-func SerializePlayerPositions(players []PlayerPosition) string {
-	frameIdx := players[0].FrameIdx
-	parts := make([]string, len(players))
+func SerializeFrame(frame SmallFrame) string {
+	frameIdx := frame.FrameIdx
+	parts := make([]string, len(frame.Players))
 
-	for i, player := range players {
-		if player.FrameIdx != frameIdx {
-			//TODO: something is big not good :(
-		}
-		playerData := fmt.Sprintf("%f;%f", player.X, player.Y)
+	for i, player := range frame.Players {
+		playerData := fmt.Sprintf("%s;%f;%f", player.PlayerId, player.X, player.Y)
 		parts[i] = playerData
 	}
 
-	return fmt.Sprintf("%d:%s", frameIdx, strings.Join(parts, ","))
+	ballString := fmt.Sprintf("%f;%f", frame.Ball.X, frame.Ball.Y)
+
+	return fmt.Sprintf("%d:%s:%s", frameIdx, ballString, strings.Join(parts, ","))
 }
 
-func DeserializePlayerPositions(data string) []PlayerPosition {
+func DeserializeFrame(data string) SmallFrame {
+	frame := SmallFrame{
+		Players: make([]PlayerPosition, 0),
+		Ball:    Position{},
+	}
+	if data == "" {
+		return frame
+	}
 	frameIdxAndData := strings.Split(data, ":")
 	frameIdx, _ := strconv.Atoi(frameIdxAndData[0])
-	playerParts := strings.Split(frameIdxAndData[1], ",")
-	positions := make([]PlayerPosition, len(playerParts))
-	for i, playerPart := range playerParts {
-		positionData := strings.Split(playerPart, ";")
-		x, _ := strconv.ParseFloat(positionData[0], 64)
-		y, _ := strconv.ParseFloat(positionData[1], 64)
-		playerPosition := PlayerPosition{
-			FrameIdx: frameIdx,
-			X:        x,
-			Y:        y,
-		}
-		positions[i] = playerPosition
+	frame.FrameIdx = frameIdx
+
+	if frameIdxAndData[1] != "" {
+		ballData := strings.Split(frameIdxAndData[1], ";")
+		frame.Ball.X, _ = strconv.ParseFloat(ballData[0], 64)
+		frame.Ball.Y, _ = strconv.ParseFloat(ballData[1], 64)
 	}
-	return positions
+
+	if frameIdxAndData[2] != "" {
+		allPlayersData := strings.Split(frameIdxAndData[2], ",")
+		frame.Players = make([]PlayerPosition, len(allPlayersData))
+		for i, playerPart := range allPlayersData {
+			playerData := strings.Split(playerPart, ";")
+			x, _ := strconv.ParseFloat(playerData[1], 64)
+			y, _ := strconv.ParseFloat(playerData[2], 64)
+			player := PlayerPosition{
+				PlayerId: playerData[0],
+				Position: Position{
+					X: x,
+					Y: y,
+				},
+			}
+			frame.Players[i] = player
+		}
+	}
+
+	return frame
 }

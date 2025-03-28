@@ -6,15 +6,15 @@ import (
 	"sync"
 )
 
-type CollectorWorker struct {
+type Worker struct {
 	worker.BaseWorker
 	socketListen   *zmq.Socket
 	socketStore    *zmq.Socket
 	socketDetector *zmq.Socket
 }
 
-func New(ctx *zmq.Context, options ...func(worker *CollectorWorker)) *CollectorWorker {
-	w := &CollectorWorker{
+func New(ctx *zmq.Context, options ...func(worker *Worker)) *Worker {
+	w := &Worker{
 		BaseWorker: worker.NewBaseWorker(ctx, "collector"),
 	}
 	for _, opt := range options {
@@ -23,7 +23,7 @@ func New(ctx *zmq.Context, options ...func(worker *CollectorWorker)) *CollectorW
 	return w
 }
 
-func (w *CollectorWorker) Run(wg *sync.WaitGroup) {
+func (w *Worker) Run(wg *sync.WaitGroup) {
 	defer wg.Done()
 	defer w.close()
 	w.Logger.Info("Starting collector worker")

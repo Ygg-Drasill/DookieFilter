@@ -21,6 +21,14 @@ type Frame struct {
 	WallClock   int64    `json:"wallClock"`
 }
 
+type Player struct {
+	Number   string    `json:"number"`
+	OptaId   string    `json:"optaId"`
+	PlayerId string    `json:"playerId"`
+	Speed    float64   `json:"speed"`
+	Xyz      []float64 `json:"xyz"`
+}
+
 type Signal struct {
 	EndFrameIdx    int   `json:"endFrameIdx"`
 	EndWallClock   int64 `json:"endWallClock"`
