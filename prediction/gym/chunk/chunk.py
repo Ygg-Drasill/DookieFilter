@@ -52,16 +52,12 @@ class Chunk:
         current_chunk = Chunk()
 
         for row in self.data:
-            row.pop("frame_index")
-            row.pop("ball_x")
-            row.pop("ball_y")
-
             dirty = False
             if last_row is None:
                 last_row = row
                 continue
 
-            for player in row:
+            for player in set(row).difference({"frame_index", "ball_x", "ball_y"}):
                 if len(set(row.keys()).difference(set(last_row.keys()))) > 0:
                     dirty = True
                     break
