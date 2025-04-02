@@ -86,7 +86,9 @@ func (w *Worker) handlePlayerFrameRequest() {
 		w.respondEmpty()
 		return
 	}
+	w.mutex.Lock()
 	playerBuffer := w.players[playerId]
+	w.mutex.Unlock()
 	position, err := playerBuffer.Get(pringleBuffer.Key(frameIndex))
 	if err != nil {
 		w.Logger.Error("Failed to get position", "frameIndex", frameIndex, "playerId", playerId, "error", err)
