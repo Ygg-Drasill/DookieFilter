@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"fmt"
 	"github.com/Ygg-Drasill/DookieFilter/common/types"
 	zmq "github.com/pebbe/zmq4"
 	"strings"
@@ -37,19 +38,41 @@ func (w *Worker) listenProvide(wg *sync.WaitGroup) {
 	for {
 		topic, err := w.socketProvide.Recv(zmq.SNDMORE)
 		if err != nil {
-			w.Logger.Error("Failed to read topic from message")
+			w.Logger.Error("Failed to read topic from message", "error", err)
 		}
 
 		if topic == "playerFrame" {
-
-		}
-
-		if topic == "playerRange" {
-
+			w.receivePlayerFrameRequest()
 		}
 
 		if topic == "playerNumber" {
 
 		}
+
+		if topic == "frameRange" {
+			w.receiveFrameRangeRequest()
+		}
 	}
+}
+
+func (w *Worker) receivePlayerFrameRequest() {
+	messageParts, err := w.socketProvide.RecvMessage(0)
+	if err != nil {
+		w.Logger.Error("Failed to receive request", "type", "playerFrame", "error", err)
+		return
+	}
+	message := strings.Join(messageParts, "")
+	frameIndexAndPlayerId := strings.Split(message, ":")
+	frameIndex, playerId := frameIndexAndPlayerId[0], frameIndexAndPlayerId[1]
+	w.Logger.Debug("Handling playerFrame request", "frameIndex", frameIndex, "playerId", playerId)
+}
+
+func (w *Worker) receiveFrameRangeRequest() {
+	messageParts, err := w.socketProvide.RecvMessage(0)
+	if err != nil {
+		w.Logger.Error("Failed to receive request", "type", "frameRange", "error", err)
+		return
+	}
+	message := strings.Join(messageParts, "")
+	fmt.Println(message) //TODO: implement
 }
