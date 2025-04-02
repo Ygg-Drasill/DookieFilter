@@ -10,6 +10,7 @@ import (
 	"github.com/Ygg-Drasill/DookieFilter/services/master/worker"
 	zmq "github.com/pebbe/zmq4"
 	"github.com/stretchr/testify/assert"
+	"log/slog"
 	"testing"
 	"time"
 )
@@ -17,7 +18,7 @@ import (
 const testFrameCount = 10
 
 func TestMasterServiceIntegration(t *testing.T) {
-	//slog.SetLogLoggerLevel(slog.LevelError)
+	slog.SetLogLoggerLevel(slog.LevelDebug)
 	ctx, err := zmq.NewContext()
 	if err != nil {
 		panic(err)
@@ -33,6 +34,16 @@ func TestMasterServiceIntegration(t *testing.T) {
 		panic(err)
 	}
 	err = collectorSock.Connect(endpoints.InProcessEndpoint(endpoints.COLLECTOR))
+	if err != nil {
+		panic(err)
+	}
+
+	storageSock, err := ctx.NewSocket(zmq.REQ)
+	if err != nil {
+		panic(err)
+	}
+
+	err = storageSock.Connect(endpoints.InProcessEndpoint(endpoints.STORAGE_PROVIDE))
 	if err != nil {
 		panic(err)
 	}
@@ -55,6 +66,20 @@ func TestMasterServiceIntegration(t *testing.T) {
 	playerIds := make([]string, len(initialFrame.AwayPlayers)+len(initialFrame.HomePlayers))
 	for _, p := range append(initialFrame.AwayPlayers, initialFrame.HomePlayers...) {
 		playerIds = append(playerIds, p.PlayerId)
+	}
+
+	firstFrameIndex := initialFrame.FrameIdx
+	playerId := initialFrame.AwayPlayers[0].PlayerId
+	for i := range testFrameCount {
+		_, err = storageSock.Send("playerFrame", zmq.SNDMORE)
+		if err != nil {
+			panic(err)
+		}
+
+		_, err = storageSock.SendMessage(firstFrameIndex+i, ":", playerId)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	time.Sleep(3 * time.Second)
