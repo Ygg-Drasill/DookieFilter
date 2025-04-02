@@ -14,7 +14,8 @@ import (
 type Worker struct {
 	worker.BaseWorker
 
-	socketListen *zmq.Socket
+	socketListen  *zmq.Socket
+	socketStorage *zmq.Socket
 
 	stateBuffer *pringleBuffer.PringleBuffer[types.SmallFrame]
 }
@@ -100,12 +101,68 @@ func (w *Worker) detect(frame types.SmallFrame) {
 			if len(checkPlayer) > 1 {
 				w.swap(checkPlayer)
 			}
-			checkPlayer = make(map[string]types.PlayerPosition)
 		}
 		c++
 	}
+
 }
 
+const (
+	onePlayer  = 2
+	twoPlayers = 4
+)
+
+var evenPlayers = func(x int) bool { return x%2 == 0 }
+
 func (w *Worker) swap(p map[string]types.PlayerPosition) {
-	w.Logger.Error("Swapping players", "players", p)
+	x := len(p)
+	switch x {
+	case onePlayer:
+		fmt.Println("One player")
+		w.jump(p)
+	case twoPlayers:
+		fmt.Println("Two players")
+	default:
+		if evenPlayers(x) {
+			fmt.Printf("Even number of players: %d\n", x)
+		} else {
+			fmt.Printf("Odd number of players: %d\n", x)
+		}
+		fmt.Printf("Unknown number of players: %d\n", x)
+	}
+}
+
+func (w *Worker) jump(p map[string]types.PlayerPosition) {
+	var p1, p2 string
+	for k, player := range p {
+		if player.FrameIdx == 0 {
+			fmt.Println("hole")
+			return
+		}
+		if strings.HasSuffix(k, ":0") {
+			p1 = fmt.Sprintf("%s:%d:0", player.PlayerId, player.FrameIdx)
+		} else {
+			p2 = fmt.Sprintf("%s:%d:1", player.PlayerId, player.FrameIdx)
+		}
+	}
+	s, err := w.stateBuffer.Get(pringleBuffer.Key(p[p1].FrameIdx - 1))
+	if err != nil {
+		w.Logger.Warn("No previous frame to compare")
+		return
+	}
+	for _, player := range s.Players {
+		if player.Position == p[p1].Position && player.PlayerId != p[p1].PlayerId {
+			fmt.Println("Jump detected", player.PlayerId)
+			return
+		}
+		if player.Position == p[p2].Position && player.PlayerId != p[p2].PlayerId {
+			fmt.Println("Jump detected", player.PlayerId)
+			return
+		}
+		if player.Position == p[p1].Position {
+			fmt.Println("Jump detected", p[p1].PlayerId)
+			return
+		}
+
+	}
 }
