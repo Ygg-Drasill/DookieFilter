@@ -7,7 +7,7 @@ replace github.com/Ygg-Drasill/DookieFilter/common => ../../common
 require (
 	github.com/Ygg-Drasill/DookieFilter/common v0.0.0-20250304112614-4ecfafaddcf3
 	github.com/joho/godotenv v1.5.1
-	github.com/pebbe/zmq4 v1.2.11
+	github.com/pebbe/zmq4 v1.3.0
 )
 
 require (
