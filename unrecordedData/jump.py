@@ -1,5 +1,7 @@
 import json
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from matplotlib.ticker import MaxNLocator
 from datetime import datetime
 
 def read_jsonl(file_path):
@@ -7,8 +9,13 @@ def read_jsonl(file_path):
         for line in file:
             yield json.loads(line)
 
+def print_player_location(player_number, wall_clock1, y):
+    readable_time = wall_clock1
+    print(f"Player {player_number} at {readable_time}: Y = {y}")
+
+
 if __name__ == "__main__":
-    file_path = "../visunator/raw.jsonl"
+    file_path = "../raw.jsonl"
     selected_number = "9"  # The player you want to focus on
 
     start_time = 1726507990000  # Start time in wallClock milliseconds
@@ -16,7 +23,7 @@ if __name__ == "__main__":
 
     print(f"Start time (wallClock): {start_time}")  # Print the start wallClock time
 
-    player_positions = []  # To store player positions
+    player_positions = []  # To store player positions along with timestamps
 
     for entry in read_jsonl(file_path):
         for data_entry in entry.get("data", []):
@@ -28,21 +35,34 @@ if __name__ == "__main__":
                             if player.get("number") == selected_number:
                                 try:
                                     x, y, _ = player["xyz"]
-                                    player_positions.append((x, y))  # Store x and y coordinates
+                                    print_player_location(player.get("number"), wall_clock, y)
+                                    # Convert wallClock to a datetime object for better plotting
+                                    time_obj = datetime.utcfromtimestamp(wall_clock / 1000)
+                                    player_positions.append((time_obj, y))  # Store datetime object and y-coordinate
                                 except KeyError:
                                     print(f"Missing 'xyz' data for player {selected_number}")
 
-    # Plotting the player's path
+    # Plotting the player's positions over time
     if player_positions:
-        x_positions, y_positions = zip(*player_positions)  # Unzip the list into x and y coordinates
-        step = 5  # Show a dot every 5 points
-        plt.plot(x_positions, y_positions, '--', color='blue', alpha=0.7)  # Dashed line for the path
-        plt.plot(x_positions[::step], y_positions[::step], 'o', color='blue', markersize=4, label=f"Player {selected_number}")  # Dots every 5 points
-        plt.xlabel("X Position")
-        plt.ylabel("Y Position")
-        plt.title(f"Player {selected_number} Path", fontsize=20)
+        times, y_positions = zip(*player_positions)  # Unzip the list into time and y coordinates
+
+        # Create the plot
+        plt.figure(figsize=(10, 6))  # Adjust figure size for better readability
+        plt.scatter(times, y_positions, label=f"Player {selected_number}", color='blue', marker='o')
+
+        # Format the x-axis for better readability
+        ax = plt.gca()
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))  # Format time as HH:MM:SS
+        ax.xaxis.set_major_locator(MaxNLocator(nbins=6))  # Limit the number of x-axis labels
+        plt.xticks(rotation=45)  # Rotate x-axis labels for better readability
+
+        # Add labels and title
+        plt.xlabel("Time (HH:MM:SS)")
+        plt.ylabel("Y Coordinate")
+        plt.title(f"Player {selected_number} Y-Position Over Time")
         plt.legend()
-        plt.grid(True)
+        plt.grid()
+        plt.tight_layout()  # Adjust layout to prevent label overlap
         plt.show()
     else:
         print(f"No data found for player {selected_number} in the specified time range.")
