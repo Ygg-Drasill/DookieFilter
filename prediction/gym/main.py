@@ -15,8 +15,8 @@ data = {
 
 frame_idx = []
 
-frame_start =   100000
-frame_end =     101000
+frame_start = 100000
+frame_end = 101000
 
 for line in f:
     packet = json.loads(line)
