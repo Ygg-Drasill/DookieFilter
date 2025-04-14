@@ -8,7 +8,7 @@ def read_jsonl(file_path):
             yield json.loads(line)
 
 if __name__ == "__main__":
-    file_path = "../raw.jsonl"
+    file_path = "../visunator/raw.jsonl"
     selected_number_1 = "9"   # The first player you want to focus on
     selected_number_2 = "19"  # The second player you want to focus on
 
@@ -58,6 +58,7 @@ if __name__ == "__main__":
         plt.title("Player Positions Over Time")
         plt.xticks(rotation=45)  # Rotate x-axis labels for better readability
         plt.legend()
+        plt.grid()
         plt.show()
     else:
         print(f"No data found for players {selected_number_1} and {selected_number_2} in the specified time range.")

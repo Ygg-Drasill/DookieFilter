@@ -35,9 +35,9 @@ yplot = numpy.array(data["ball"])[:, :2]
 
 
 fig, axs = plt.subplots(2)
-axs[0].plot(*yplot.T)
+axs[0].plot(*yplot.T, 'o-', linestyle='--', markersize=4)
 axs[0].title.set_text("Path")
-axs[1].plot(xplot, yplot)
+axs[1].plot(xplot, yplot, 'o-', linestyle='--', markersize=4)
 axs[1].title.set_text("Coordinates")
 
 plt.show()

@@ -20,7 +20,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	if g.frameIndex == -1 {
 		return
 	}
-	debugInfo := fmt.Sprintf("%d:%d:%d", g.time.Hour(), g.time.Minute(), g.time.Second())
+	debugInfo := fmt.Sprintf("%s", g.time)
 
 	xoff := float32(g.width / 2)
 	yoff := float32(g.height / 2)
