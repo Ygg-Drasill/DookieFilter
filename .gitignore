@@ -1,3 +1,5 @@
 *.jsonl
 .idea
+.env
 *__pycache__
+prediction/.venv

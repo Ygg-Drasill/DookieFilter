@@ -6,6 +6,9 @@ type PringleIndexable interface {
 	Key() Key
 }
 
+// PringleBuffer
+// A ring buffer, where elements are sorted (prioritized),
+// descending from head to tail
 type PringleBuffer[TElement PringleIndexable] struct {
 	head  *PringleElement[TElement]
 	tail  *PringleElement[TElement]
@@ -60,13 +63,14 @@ func (pb *PringleBuffer[TElement]) Insert(data TElement) {
 	pb.trimTail()
 }
 
-func (pb *PringleBuffer[TElement]) Get(key Key) (PringleIndexable, error) {
+func (pb *PringleBuffer[TElement]) Get(key Key) (TElement, error) {
+	var empty TElement
 	var element *PringleElement[TElement]
 	current := pb.head
 	for current.Key() != key {
 		current = current.next
 		if current == nil {
-			return nil, PringleBufferError{msg: "element does not exist"}
+			return empty, PringleBufferError{msg: "element does not exist"}
 		}
 	}
 	element = current
