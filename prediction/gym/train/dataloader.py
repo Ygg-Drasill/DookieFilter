@@ -78,6 +78,10 @@ class MatchDataset(Dataset):
         return (y + self.field_y_offset) / self.field_height
 
     def get_player_ball__n_nearest(self, idx: int, player_number: str, n: int):
+        """
+        Find nearest home- and away players around specified player,
+        and return ball, player and two lists with n nearest players
+        """
         frame_coords = self.collect_coords_at(idx)
         if player_number not in dict.keys(frame_coords):
             return []
@@ -106,7 +110,11 @@ class MatchDataset(Dataset):
             away[key] = frame_coords[key]
         return ball_coords, player, home, away
 
-    def collect_coords_at(self, idx: int):
+    def collect_coords_at(self, idx: int) -> dict:
+        """
+        Return a row at index (dict) containing the ball position and
+        all player positions, where all coordinates collected into 2D vectors
+        """
         frame = self.match_dataframe.loc[idx]
         ball = [frame["ball_x"], frame["ball_y"]]
         frame_coords = {"ball": ball}

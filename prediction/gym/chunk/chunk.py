@@ -37,16 +37,18 @@ class Chunk:
         self.count += 1
         self.data.append(row)
 
-
-    def write_to_file(self, output_target : str):
+    def write_to_file(self, output_target: str):
+        """Save this chunk in a file"""
         csv_file = open(output_target, "w")
         writer = csv.DictWriter(csv_file, fieldnames=self.data_fields)
         writer.writeheader()
         writer.writerows(self.data)
         csv_file.close()
 
-
     def filter(self) -> list[Self]:
+        """
+        Create a list of new chunks for all realistic parts of the original chunk
+        """
         last_row: dict[str, Any] = None
         sub_chunks : list[Chunk] = []
         current_chunk = Chunk()
