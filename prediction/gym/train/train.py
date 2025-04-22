@@ -114,7 +114,10 @@ def train_model(
                            })
 
         writer.flush()
-        torch.save(model.state_dict(), f'{export_directory}/models/{ format_model_name(n_nearest, stack_size, hidden_size, lr, epochs, batch_size, n_parameters)}.pt')
+
+
+        if validation_loss < validation_loss_low:
+            torch.save(model.state_dict(), f'{export_directory}/models/{format_model_name(n_nearest, stack_size, hidden_size, lr, epochs, batch_size, n_parameters)}.pt')
 
 
 if __name__ == '__main__':
