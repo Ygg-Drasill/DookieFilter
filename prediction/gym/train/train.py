@@ -16,48 +16,34 @@ def format_model_name(n_nearest_players, stack_size, hidden_size, lr, epochs, ba
     return f'{n_nearest_players}-{stack_size}-{hidden_size}-{lr}-{epochs}-{batch_size}-{parameters}'
 
 
-target_director: str
+export_directory: str
 summary_writer: SummaryWriter
 dataset_split_ratio: float
 device: str
 chunk_path: str
 player_numbers: list[str]
+hyper_parameters: dict
 
 
 if __name__ == '__init__':
-    target_directory = os.path.abspath(f'../runs')
-    summary_writer = SummaryWriter(f'{target_directory}/board')
+    print("init")
+    export_directory = os.path.abspath(f'../runs')
+    summary_writer = SummaryWriter(f'{export_directory}/board')
 
     torch.random.seed()
     dataset_split_ratio = 0.8
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    chunk_path = os.path.abspath("../data/chunk_0.csv")
+    chunk_path = os.path.abspath("../data")
     player_numbers = ["h_10"]#["h_10", "h_13", "h_14", "h_2", "h_8", "a_1", "a_3", "a_19", "a_26", "a_44"]
 
-
-if __name__ == '__main__':
     hyper_parameters = {
-        'n_nearest_players': range(1, 5+1),
-        'stack_size': range(1, 16+1),
+        'n_nearest_players': range(1, 5 + 1),
+        'stack_size': range(1, 16 + 1),
         'hidden_size': [8, 16, 32, 64, 128, 256, 512],
         'sequence_length': [10, 20, 30, 40],
         'batch_size': [16, 32, 64, 128, 256],
         'lr': [0.0001, 0.00001, 0.1, 0.001],
     }
-
-    for n_nearest in hyper_parameters['n_nearest_players']:
-        for stack_size in hyper_parameters['stack_size']:
-            for hidden_size in hyper_parameters['hidden_size']:
-                for sequence_length in hyper_parameters['sequence_length']:
-                    for batch_size in hyper_parameters['batch_size']:
-                        for lr in hyper_parameters['lr']:
-                            train_model(
-                                n_nearest,
-                                stack_size,
-                                hidden_size,
-                                sequence_length,
-                                batch_size,
-                                lr)
 
 
 def train_model(
@@ -92,11 +78,11 @@ def train_model(
 
     training_step = 0
     validation_step = 0
-    writer = SummaryWriter(f'{target_directory}/player/{format_model_name( n_nearest, stack_size, hidden_size, lr, epochs, batch_size, n_parameters)}')
+    writer = SummaryWriter(f'{export_directory}/player/{format_model_name( n_nearest, stack_size, hidden_size, lr, epochs, batch_size, n_parameters)}')
     training_logger = BoardLogger(writer)
     validation_logger = BoardLogger(writer)
     train_loss, validation_loss = 0, 0
-    validation_loss_low = float(inf)
+    validation_loss_low = float(math.inf)
 
     for epoch in range(epochs):
         train_loss += train_epoch(epoch,
@@ -128,12 +114,14 @@ def train_model(
                            })
 
         writer.flush()
-        torch.save(model.state_dict(),
-                   f'{target_directory}/models/{
-                        format_model_name(n_nearest,
-                                          stack_size,
-                                          hidden_size,
-                                          lr,
-                                          epochs,
-                                          batch_size,
-                                          n_parameters)}.pt')
+        torch.save(model.state_dict(), f'{export_directory}/models/{ format_model_name(n_nearest, stack_size, hidden_size, lr, epochs, batch_size, n_parameters)}.pt')
+
+
+if __name__ == '__main__':
+    for n_nearest in hyper_parameters['n_nearest_players']:
+        for stack_size in hyper_parameters['stack_size']:
+            for hidden_size in hyper_parameters['hidden_size']:
+                for sequence_length in hyper_parameters['sequence_length']:
+                    for batch_size in hyper_parameters['batch_size']:
+                        for lr in hyper_parameters['lr']:
+                            train_model(n_nearest, stack_size, hidden_size, sequence_length, batch_size, lr)
