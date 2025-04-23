@@ -24,17 +24,23 @@ chunk_path: str
 player_numbers: list[str]
 hyper_parameters: dict
 
+def init():
+    global export_directory
+    global summary_writer
+    global dataset_split_ratio
+    global device
+    global chunk_path
+    global player_numbers
+    global hyper_parameters
 
-if __name__ == '__init__':
-    print("init")
     export_directory = os.path.abspath(f'../runs')
     summary_writer = SummaryWriter(f'{export_directory}/board')
 
     torch.random.seed()
     dataset_split_ratio = 0.8
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    chunk_path = os.path.abspath("../data")
-    player_numbers = ["h_10"]#["h_10", "h_13", "h_14", "h_2", "h_8", "a_1", "a_3", "a_19", "a_26", "a_44"]
+    chunk_path = os.path.abspath("../data/chunk_1.csv")
+    player_numbers = ["h_10"]  # ["h_10", "h_13", "h_14", "h_2", "h_8", "a_1", "a_3", "a_19", "a_26", "a_44"]
 
     hyper_parameters = {
         'n_nearest_players': range(1, 5 + 1),
@@ -44,6 +50,10 @@ if __name__ == '__init__':
         'batch_size': [16, 32, 64, 128, 256],
         'lr': [0.0001, 0.00001, 0.1, 0.001],
     }
+
+
+if __name__ == '__init__':
+    init()
 
 
 def train_model(
@@ -121,6 +131,7 @@ def train_model(
 
 
 if __name__ == '__main__':
+    init()
     for n_nearest in hyper_parameters['n_nearest_players']:
         for stack_size in hyper_parameters['stack_size']:
             for hidden_size in hyper_parameters['hidden_size']:
