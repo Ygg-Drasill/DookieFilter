@@ -5,6 +5,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader, ConcatDataset
 from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 
 from epoch import train_epoch, validate_epoch
 from gym.board_logger import BoardLogger
@@ -39,18 +40,25 @@ def init():
     torch.random.seed()
     dataset_split_ratio = 0.8
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    chunk_path = os.path.abspath("../data/chunk_1.csv")
-    player_numbers = ["h_10"]  # ["h_10", "h_13", "h_14", "h_2", "h_8", "a_1", "a_3", "a_19", "a_26", "a_44"]
+    chunk_path = os.path.abspath("../data/f361a535-4d7e-4470-a187-01074c0046fe") #use all matches later
+
+    # hyper_parameters = {
+    #     'n_nearest_players': range(1, 5 + 1),
+    #     'stack_size': range(1, 16 + 1),
+    #     'hidden_size': [8, 16, 32, 64, 128, 256, 512],
+    #     'sequence_length': [10, 20, 30, 40],
+    #     'batch_size': [16, 32, 64, 128, 256],
+    #     'lr': [0.0001, 0.00001, 0.1, 0.001],
+    # }
 
     hyper_parameters = {
-        'n_nearest_players': range(1, 5 + 1),
-        'stack_size': range(1, 16 + 1),
-        'hidden_size': [8, 16, 32, 64, 128, 256, 512],
-        'sequence_length': [10, 20, 30, 40],
-        'batch_size': [16, 32, 64, 128, 256],
-        'lr': [0.0001, 0.00001, 0.1, 0.001],
+        'n_nearest_players': [3],
+        'stack_size': [4],
+        'hidden_size': [64],
+        'sequence_length': [20],
+        'batch_size': [64],
+        'lr': [0.0001],
     }
-
 
 if __name__ == '__init__':
     init()
@@ -65,8 +73,12 @@ def train_model(
     lr: float
 ):
     print(f'n:{n_nearest} stack_size:{stack_size} hidden_size:{hidden_size} seq:{sequence_length} lr:{lr} batch_size:{batch_size}')
+    chunk_datasets = []
     player_dataset = ConcatDataset(
-        [PlayerDataset(chunk_path, sequence_length, num, n_nearest) for num in player_numbers])
+        [PlayerDataset(f"{chunk_path}/{path}", sequence_length, n_nearest) for path in tqdm(os.listdir(chunk_path),
+                                                                                            unit='chunk',
+                                                                                            desc='building dataset from chunks',
+                                                                                            ncols=200)])
     train_size = math.floor(len(player_dataset) * dataset_split_ratio)
     validation_size = len(player_dataset) - train_size
     train_set, validation_set = torch.utils.data.random_split(player_dataset,

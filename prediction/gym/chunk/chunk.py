@@ -15,6 +15,9 @@ class Chunk:
         self.data_fields = {"frame_index", "ball_x", "ball_y"}
         self.data: list[dict[str, Any]] = []
 
+    def __length__(self):
+        return self.count
+
     def add_data(self, data: dict[str, Any]) -> None:
         self.data.append(data)
         self.count += 1
@@ -39,8 +42,20 @@ class Chunk:
 
     def write_to_file(self, output_target: str):
         """Save this chunk in a file"""
-        csv_file = open(output_target, "w")
-        writer = csv.DictWriter(csv_file, fieldnames=self.data_fields)
+        fieldnames = {"frame_index", "ball_x", "ball_y"}
+        for player in self.data_fields.difference({"frame_index", "ball_x", "ball_y"}):
+            for i, d in enumerate(self.data):
+                try:
+                    coords = d.pop(player)
+                except KeyError:
+                    continue
+                d[player + "_x"] = coords[0]
+                d[player + "_y"] = coords[1]
+                fieldnames = fieldnames.union({f"{player}_x", f"{player}_y"})
+                self.data[i] = d
+
+        csv_file = open(output_target, "w", newline="")
+        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(self.data)
         csv_file.close()
@@ -54,15 +69,17 @@ class Chunk:
         current_chunk = Chunk()
 
         for row in self.data:
-            dirty = False
             if last_row is None:
                 last_row = row
                 continue
 
+            #Mark as dirty if player numbers currently on field changed
+            dirty = set(row.keys()) != set(last_row.keys()) #any(x is None for x in row.items()
+
             for player in set(row).difference({"frame_index", "ball_x", "ball_y"}):
-                if len(set(row.keys()).difference(set(last_row.keys()))) > 0:
-                    dirty = True
+                if dirty:
                     break
+
                 last_pos = np.array(last_row[player], dtype=float)
                 current_pos = np.array(row[player], dtype=float)
                 distance = np.linalg.norm(current_pos - last_pos)
@@ -73,8 +90,9 @@ class Chunk:
                 sub_chunks.append(current_chunk)
                 current_chunk = Chunk()
                 continue
+            else:
+                current_chunk.add_data(row)
 
-            current_chunk.add_data(row)
         return sub_chunks
 
 
@@ -82,9 +100,9 @@ class Chunk:
         player_coords, player_number = player_data["xyz"], player_data["number"]
         key = player_prefix + str(player_number)
         coords = [player_coords[0], player_coords[1]]
-        row[key] = coords
         key_x = key + "_x"
         key_y = key + "_y"
+        row[key] = coords
 
         if key_x not in self.data_fields:
             self.data_fields.add(key_x)

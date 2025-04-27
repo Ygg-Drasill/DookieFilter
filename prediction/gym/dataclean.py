@@ -40,6 +40,7 @@ def add_player_data(player_data, frame_data, frame_fields, player_prefix: str):
 
 data_path = sys.argv[1]
 output_target = sys.argv[2]
+match_output_target = ""
 
 file = open(data_path)
 chunks: list[Chunk] = []
@@ -47,18 +48,21 @@ data_fields = ["frame_index", "ball_x", "ball_y"]
 frame_idx = []
 chunk_index = 0
 
-init = os.path.exists(output_target)
 game_active = False
 
 current_chunk = Chunk()
+init = False
 
 for line in file:
     packet = json.loads(line)
+
     if not init:
         init = True
-        os.mkdir(output_target)
-        output_target = output_target + "/" + packet["gameId"]
-        os.mkdir(output_target)
+        if not os.path.exists(output_target):
+            os.mkdir(output_target)
+        match_output_target = output_target + "/" + packet["gameId"]
+        if not os.path.exists(match_output_target):
+            os.mkdir(match_output_target)
 
     for seperated_frame in packet["data"]:
         if "frameIdx" not in dict.keys(seperated_frame):
@@ -85,6 +89,6 @@ sub_chunks = [x for x in sub_chunks if x.count >= 50]
 
 print(f"found chunks: {len(sub_chunks)}")
 for i, chunk in enumerate(tqdm(sub_chunks, desc="writing chunks to disk")):
-    chunk.write_to_file(f"{output_target}/chunk_{i}.csv")
+    chunk.write_to_file(f"{match_output_target}/chunk_{i}.csv")
 
 #1307
