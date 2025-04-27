@@ -1,6 +1,7 @@
 import math
 import os.path
 
+import pandas as pd
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, ConcatDataset
@@ -73,7 +74,12 @@ def train_model(
     lr: float
 ):
     print(f'n:{n_nearest} stack_size:{stack_size} hidden_size:{hidden_size} seq:{sequence_length} lr:{lr} batch_size:{batch_size}')
-    chunk_datasets = []
+    chunk_files = os.listdir(chunk_path)
+    chunk_sizes = [pd.read_csv(f"{chunk_path}/{p}").shape[0] for p in chunk_files]
+    total_samples = sum(chunk_sizes)
+    average_chunk_size = total_samples // len(chunk_sizes)
+    print(f"found {len(chunk_sizes)} chunks of {total_samples} samples with average chunk size {average_chunk_size}")
+
     player_dataset = ConcatDataset(
         [PlayerDataset(f"{chunk_path}/{path}", sequence_length, n_nearest) for path in tqdm(os.listdir(chunk_path),
                                                                                             unit='chunk',
