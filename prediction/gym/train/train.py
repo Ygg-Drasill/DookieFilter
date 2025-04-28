@@ -1,5 +1,6 @@
 import math
 import os.path
+from typing import Generator
 
 import pandas as pd
 import torch
@@ -12,10 +13,13 @@ from epoch import train_epoch, validate_epoch
 from gym.board_logger import BoardLogger
 from model.player_predictor import PlayerPredictor
 from player_dataset import PlayerDataset
+from test import test_model
 
 
-def format_model_name(n_nearest_players, stack_size, hidden_size, lr, epochs, batch_size, parameters):
-    return f'{n_nearest_players}-{stack_size}-{hidden_size}-{lr}-{epochs}-{batch_size}-{parameters}'
+def format_model_name(n_nearest_players, stack_size, hidden_size, lr, epochs, batch_size, n_parameters = 0):
+    if n_nearest_players > 0:
+        return f'{n_nearest_players}-{stack_size}-{hidden_size}-{lr}-{epochs}-{batch_size}-{n_parameters}'
+    return f'{n_nearest_players}-{stack_size}-{hidden_size}-{lr}-{epochs}-{batch_size}'
 
 
 export_directory: str
@@ -36,7 +40,6 @@ def init():
     global hyper_parameters
 
     export_directory = os.path.abspath(f'../runs')
-    summary_writer = SummaryWriter(f'{export_directory}/board')
 
     torch.random.seed()
     dataset_split_ratio = 0.8
@@ -53,17 +56,16 @@ def init():
     # }
 
     hyper_parameters = {
-        'n_nearest_players': [3],
-        'stack_size': [4],
-        'hidden_size': [64],
-        'sequence_length': [20],
+        'n_nearest_players': [3,4,5], #3-5
+        'stack_size': [4,8,16,32], #4-32
+        'hidden_size': [16,32,64,128], #32-128
+        'sequence_length': [20], #20-40
         'batch_size': [64],
-        'lr': [0.0001],
+        'lr': [0.0001, 0.00001],
     }
 
 if __name__ == '__init__':
     init()
-
 
 def train_model(
     n_nearest: int,
@@ -87,22 +89,17 @@ def train_model(
                                                                                             ncols=200)])
     train_size = math.floor(len(player_dataset) * dataset_split_ratio)
     validation_size = len(player_dataset) - train_size
-    train_set, validation_set = torch.utils.data.random_split(player_dataset,
-                                                              [train_size, validation_size])
+    train_set, validation_set = torch.utils.data.random_split(player_dataset,[train_size, validation_size])
     train_dataloader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=8)
-    validation_dataloader = DataLoader(validation_set, batch_size=batch_size, shuffle=True,
-                                       num_workers=8)
+    validation_dataloader = DataLoader(validation_set, batch_size=batch_size, shuffle=True, num_workers=8)
 
     model = PlayerPredictor(device, n_nearest, hidden_size, stack_size)
     model.to(device)
     n_parameters = sum(
         p.numel() for p in model.parameters() if p.requires_grad)
-    epochs = 10
+    epochs = 20
     loss_function = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-
-    train_losses = []
-    validation_losses = []
 
     training_step = 0
     validation_step = 0
@@ -111,6 +108,7 @@ def train_model(
     validation_logger = BoardLogger(writer)
     train_loss, validation_loss = 0, 0
     validation_loss_low = float(math.inf)
+    train_loss_low = float(math.inf)
 
     for epoch in range(epochs):
         train_loss += train_epoch(epoch,
@@ -129,31 +127,45 @@ def train_model(
                                           device,
                                           validation_logger)
 
-        writer.add_hparams({
-            'batch_size': batch_size,
-            'n_nearest_players': n_nearest,
-            'hidden_size': hidden_size,
-            'stack_size': stack_size,
-            'sequence_length': sequence_length,
-            'lr': lr
-        }, {
-                           'train_loss': train_loss / epochs,
-                           'test_loss': validation_loss / epochs
-                           })
 
+        model_name =format_model_name(n_nearest, stack_size, hidden_size, lr, epochs, batch_size, n_parameters)
+        model_path = f'{export_directory}/models/{model_name}.pt'
+
+        figure = test_model(model, "../data/test/chunk_60.csv")
+        writer.add_figure(f"Prediction example {model_name}", figure=figure, global_step=epoch)
         writer.flush()
-
-
         if validation_loss < validation_loss_low:
-            torch.save(model.state_dict(), f'{export_directory}/models/{format_model_name(n_nearest, stack_size, hidden_size, lr, epochs, batch_size, n_parameters)}.pt')
+            validation_loss_low = validation_loss
+            torch.save(model.state_dict(), model_path)
+        if train_loss < train_loss_low:
+            train_loss_low = train_loss
+    writer.add_hparams({
+        'batch_size': batch_size,
+        'n_nearest_players': n_nearest,
+        'hidden_size': hidden_size,
+        'stack_size': stack_size,
+        'sequence_length': sequence_length,
+        'lr': lr
+    }, {
+        'train_loss': train_loss_low,
+        'test_loss': validation_loss_low
+    })
+    writer.flush()
+    writer.close()
 
 
-if __name__ == '__main__':
-    init()
+def parameters() -> Generator[tuple[int, int, int, int, int, float], None, None]:
+    """n_nearest, stack_size, hidden_size, sequence_length, batch_size, learning_rate"""
     for n_nearest in hyper_parameters['n_nearest_players']:
         for stack_size in hyper_parameters['stack_size']:
             for hidden_size in hyper_parameters['hidden_size']:
                 for sequence_length in hyper_parameters['sequence_length']:
                     for batch_size in hyper_parameters['batch_size']:
                         for lr in hyper_parameters['lr']:
-                            train_model(n_nearest, stack_size, hidden_size, sequence_length, batch_size, lr)
+                            yield n_nearest, stack_size, hidden_size, sequence_length, batch_size, lr
+
+
+if __name__ == '__main__':
+    init()
+    for params in parameters():
+        train_model(*params)

@@ -1,22 +1,28 @@
+import io
 import os
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
+from matplotlib.figure import Figure
 
 from gym.utils.data import get_features
 from model.player_predictor import PlayerPredictor
 
-if __name__ == "__main__":
-    model_path = os.path.abspath("../runs/models/3-4-64-0.0001-10-64-120962.pt")
+def load_model(model_path) -> PlayerPredictor:
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = PlayerPredictor(device, 3, 64, 4)
     model.load_state_dict(torch.load(model_path, weights_only=True, map_location=device))
     model.to(device)
     model.eval()
+    return model
 
-    dataframe = pd.read_csv("../data/f361a535-4d7e-4470-a187-01074c0046fe/chunk_60.csv", low_memory=True)
+def test_model(model: PlayerPredictor, test_data_path: str) -> Figure:
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model.eval()
+
+    dataframe = pd.read_csv(test_data_path, low_memory=True)
     d: pd.DataFrame
     player_key = "h_6"
     start, end = 0, 500
@@ -25,7 +31,7 @@ if __name__ == "__main__":
     player_truth, player_prediction, ball = [], [], []
     sequence = []
     for dataframe_index in range(start, end):
-        features = get_features(dataframe.iloc[dataframe_index], 3, player_key)
+        features = get_features(dataframe.iloc[dataframe_index], model.n_nearest_players, player_key)
         sequence.append(features)
         feature_coords = features.reshape(-1, 2)
         player_truth.append(feature_coords[0])
@@ -35,15 +41,16 @@ if __name__ == "__main__":
     input_length = 20
 
     for i in range(prediction_start-start, len(player_prediction)):
-        input_tensor = torch.from_numpy(sequence[i-input_length:i].reshape(1,input_length, 16)).float().to(device)
+        input_tensor = torch.from_numpy(sequence[i-input_length:i].reshape(1,input_length, model.input_size)).float().to(device)
         out = model(input_tensor).cpu().detach().numpy()
         player_prediction[i] = out.squeeze()
         if i < len(sequence)-1:
             sequence[i+1][0] = out.squeeze()[0]
             sequence[i+1][1] = out.squeeze()[1]
 
+    fig = plt.figure()
     plt.plot(*np.array(player_truth).T)
     plt.plot(*np.array(player_prediction).reshape(end-start, 2).T)
 
     plt.legend(["truth", "prediction", "ball"])
-    plt.show()
+    return fig

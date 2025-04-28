@@ -15,7 +15,7 @@ def train_epoch(epoch: int,
                 loss_function,
                 optimizer:torch.optim.Optimizer,
                 device:torch.device,
-                board_lgger: BoardLogger = None):
+                board_logger: BoardLogger = None):
 
     model.train(True)
     progress_dataloader = tqdm(dataloader,
@@ -43,8 +43,8 @@ def train_epoch(epoch: int,
 
         avg_loss_across_batches = running_loss / total
         progress_dataloader.set_postfix({'loss': avg_loss_across_batches})
-        if board_lgger is not None:
-            board_lgger.log("Loss/train", loss)
+        if board_logger is not None:
+            board_logger.log("Loss/train", loss)
     return running_loss / total
 
 def validate_epoch(epoch: int,
@@ -53,7 +53,7 @@ def validate_epoch(epoch: int,
                    dataloader: DataLoader,
                    loss_function,
                    device:torch.device,
-                   board_lgger: BoardLogger = None):
+                   board_logger: BoardLogger = None):
 
     progress_dataloader = tqdm(dataloader,
                                ncols=progress_bar_columns,
@@ -78,6 +78,6 @@ def validate_epoch(epoch: int,
             total += 1
         avg_loss_across_batches = running_loss / total
         progress_dataloader.set_postfix({'loss': avg_loss_across_batches})
-        if board_lgger is not None:
-            board_lgger.log("Loss/test", loss)
+        if board_logger is not None:
+            board_logger.log("Loss/test", loss)
     return running_loss / total
