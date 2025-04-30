@@ -8,6 +8,10 @@ from gym.board_logger import BoardLogger
 
 progress_bar_columns = 200
 
+LOSS_SCALE = 1_000_000
+MIN_MOVEMENT_THRESHOLD = 0.5
+
+
 def train_epoch(epoch: int,
                 epoch_total: int,
                 model: nn.Module,
@@ -18,6 +22,8 @@ def train_epoch(epoch: int,
                 board_logger: BoardLogger = None):
 
     model.train(True)
+    torch.set_grad_enabled(True)
+    print("making dataloader")
     progress_dataloader = tqdm(dataloader,
                                ncols=progress_bar_columns,
                                desc=f"Training Epoch {epoch + 1}/{epoch_total}",
@@ -25,6 +31,7 @@ def train_epoch(epoch: int,
 
     running_loss = 0.0
     total = 0
+    print("starting batch enumeration")
     for batch_index, batch in enumerate(progress_dataloader):
         batch_x: torch.Tensor
         batch_y: torch.Tensor
@@ -32,9 +39,12 @@ def train_epoch(epoch: int,
         if torch.isnan(batch_x).any() or torch.isnan(batch_y).any():
             continue
 
-        output = model(batch_x)
+        output, delta = model(batch_x)
+
+        low_movement_penalty = torch.clamp(MIN_MOVEMENT_THRESHOLD - delta.abs(), min=0.0)
+
         loss = loss_function(output, batch_y)
-        running_loss += loss.item()
+        running_loss += (loss.item()*LOSS_SCALE)
         total += 1
         optimizer.zero_grad()
         loss.backward()
@@ -54,7 +64,6 @@ def validate_epoch(epoch: int,
                    loss_function,
                    device:torch.device,
                    board_logger: BoardLogger = None):
-
     progress_dataloader = tqdm(dataloader,
                                ncols=progress_bar_columns,
                                desc=f"Validating Epoch {epoch + 1}/{epoch_total}",
@@ -70,11 +79,11 @@ def validate_epoch(epoch: int,
         #if torch.isnan(batch_x).any() or torch.isnan(batch_y).any():
         #    print(batch_index, batch_x, batch_y)
         with torch.no_grad():
-            output = model(batch_x)
+            output, _ = model(batch_x)
             if torch.isnan(output).any() or torch.isnan(batch_y).any():
                 continue
-            loss = loss_function(output, batch_y);
-            running_loss += loss.item()
+            loss = loss_function(output, batch_y)
+            running_loss += (loss.item()*LOSS_SCALE)
             total += 1
         avg_loss_across_batches = running_loss / total
         progress_dataloader.set_postfix({'loss': avg_loss_across_batches})

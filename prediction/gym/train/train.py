@@ -44,7 +44,7 @@ def init():
     torch.random.seed()
     dataset_split_ratio = 0.8
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    chunk_path = os.path.abspath("../data/f361a535-4d7e-4470-a187-01074c0046fe") #use all matches later
+    chunk_path = os.path.abspath("../data/test") #use all matches later
 
     # hyper_parameters = {
     #     'n_nearest_players': range(1, 5 + 1),
@@ -56,12 +56,12 @@ def init():
     # }
 
     hyper_parameters = {
-        'n_nearest_players': [3,4,5], #3-5
-        'stack_size': [4,8,16,32], #4-32
-        'hidden_size': [16,32,64,128], #32-128
+        'n_nearest_players': [5], #3-5
+        'stack_size': [4], #4-32
+        'hidden_size': [64], #32-128
         'sequence_length': [20], #20-40
         'batch_size': [64],
-        'lr': [0.0001, 0.00001],
+        'lr': [0.0001], #0.0001-0.00001
     }
 
 if __name__ == '__init__':
@@ -90,13 +90,12 @@ def train_model(
     train_size = math.floor(len(player_dataset) * dataset_split_ratio)
     validation_size = len(player_dataset) - train_size
     train_set, validation_set = torch.utils.data.random_split(player_dataset,[train_size, validation_size])
-    train_dataloader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=8)
-    validation_dataloader = DataLoader(validation_set, batch_size=batch_size, shuffle=True, num_workers=8)
+    train_dataloader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=1)
+    validation_dataloader = DataLoader(validation_set, batch_size=batch_size, shuffle=True, num_workers=1)
 
     model = PlayerPredictor(device, n_nearest, hidden_size, stack_size)
     model.to(device)
-    n_parameters = sum(
-        p.numel() for p in model.parameters() if p.requires_grad)
+    n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
     epochs = 20
     loss_function = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)

@@ -12,7 +12,7 @@ from model.player_predictor import PlayerPredictor
 
 def load_model(model_path) -> PlayerPredictor:
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    model = PlayerPredictor(device, 3, 64, 4)
+    model = PlayerPredictor(device, 5, 64, 4)
     model.load_state_dict(torch.load(model_path, weights_only=True, map_location=device))
     model.to(device)
     model.eval()
@@ -42,8 +42,9 @@ def test_model(model: PlayerPredictor, test_data_path: str) -> Figure:
 
     for i in range(prediction_start-start, len(player_prediction)):
         input_tensor = torch.from_numpy(sequence[i-input_length:i].reshape(1,input_length, model.input_size)).float().to(device)
-        out = model(input_tensor).cpu().detach().numpy()
-        player_prediction[i] = out.squeeze()
+        out, _ = model(input_tensor)
+
+        player_prediction[i] = out.squeeze().detach().cpu()
         if i < len(sequence)-1:
             sequence[i+1][0] = out.squeeze()[0]
             sequence[i+1][1] = out.squeeze()[1]
@@ -54,3 +55,7 @@ def test_model(model: PlayerPredictor, test_data_path: str) -> Figure:
 
     plt.legend(["truth", "prediction", "ball"])
     return fig
+
+if __name__ == "__main__":
+    model = load_model("../runs/models/5-4-64-0.0001-20-64-123010.pt")
+    test_model(model, test_data_path="../data/test/chunk_60.csv")

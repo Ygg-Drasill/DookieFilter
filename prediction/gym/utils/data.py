@@ -3,7 +3,7 @@ import heapq
 import numpy as np
 from numpy import ndarray
 
-field_width = 145
+field_width = 105
 field_height = 68
 field_x_offset = field_width / 2
 field_y_offset = field_height / 2
