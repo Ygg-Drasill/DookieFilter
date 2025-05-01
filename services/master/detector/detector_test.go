@@ -12,8 +12,8 @@ func TestPositionProximity(t *testing.T) {
         expected bool
     }{
         {
-            a:        swapPlayer{player: types.PlayerPosition{Position: types.Position{X: 1.0, Y: 2.0}}},
-            b:        swapPlayer{player: types.PlayerPosition{Position: types.Position{X: 1.0, Y: 2.0}}},
+            a:        swapPlayer{player: types.PlayerPosition{Position: types.Position{X: 0.0, Y: 2.0}}},
+            b:        swapPlayer{player: types.PlayerPosition{Position: types.Position{X: 0.05, Y: 2.05}}},
             expected: true},
         {
             a:        swapPlayer{player: types.PlayerPosition{Position: types.Position{X: 1.0, Y: 2.0}}},
