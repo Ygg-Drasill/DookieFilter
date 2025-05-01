@@ -25,8 +25,8 @@ def test_model(model: PlayerPredictor, test_data_path: str) -> Figure:
     dataframe = pd.read_csv(test_data_path, low_memory=True)
     d: pd.DataFrame
     player_key = "h_6"
-    start, end = 0, 500
-    prediction_start = 50
+    start, end = 0, len(dataframe)
+    prediction_start = 20
 
     player_truth, player_prediction, ball = [], [], []
     sequence = []
@@ -58,4 +58,4 @@ def test_model(model: PlayerPredictor, test_data_path: str) -> Figure:
 
 if __name__ == "__main__":
     model = load_model("../runs/models/5-4-64-0.0001-20-64-123010.pt")
-    test_model(model, test_data_path="../data/test/chunk_60.csv")
+    test_model(model, test_data_path="../data/test/chunk_395.csv")
