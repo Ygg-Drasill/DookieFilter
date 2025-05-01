@@ -7,7 +7,6 @@ from tqdm import tqdm
 
 from gym.chunk.chunk import Chunk
 
-
 def save_game_chunk(chunk_file_index, output_target_dir, fields, data_chunk):
     file_name = "chunk_" + str(chunk_file_index) + ".csv"
     csv_file = open(output_target_dir + file_name, "w")
@@ -40,55 +39,62 @@ def add_player_data(player_data, frame_data, frame_fields, player_prefix: str):
 
 data_path = sys.argv[1]
 output_target = sys.argv[2]
-match_output_target = ""
 
-file = open(data_path)
-chunks: list[Chunk] = []
-data_fields = ["frame_index", "ball_x", "ball_y"]
-frame_idx = []
-chunk_index = 0
 
-game_active = False
+def run(path):
+    match_output_target = ""
+    file = open(path)
+    chunks: list[Chunk] = []
+    data_fields = ["frame_index", "ball_x", "ball_y"]
+    frame_idx = []
+    chunk_index = 0
 
-current_chunk = Chunk()
-init = False
+    game_active = False
 
-for line in file:
-    packet = json.loads(line)
+    current_chunk = Chunk()
+    init = False
 
-    if not init:
-        init = True
-        if not os.path.exists(output_target):
-            os.mkdir(output_target)
-        match_output_target = output_target + "/" + packet["gameId"]
-        if not os.path.exists(match_output_target):
-            os.mkdir(match_output_target)
+    for line in file:
+        packet = json.loads(line)
 
-    for seperated_frame in packet["data"]:
-        if "frameIdx" not in dict.keys(seperated_frame):
-            print("signal")
-            chunks.append(current_chunk)
-            current_chunk = Chunk()
-            continue
+        if not init:
+            init = True
+            if not os.path.exists(output_target):
+                os.mkdir(output_target)
+            match_output_target = output_target + "/" + packet["gameId"]
+            if not os.path.exists(match_output_target):
+                os.mkdir(match_output_target)
 
-        if len(seperated_frame["homePlayers"]) == 0 or len(seperated_frame["awayPlayers"]) == 0:
-            continue
+        for seperated_frame in packet["data"]:
+            if "frameIdx" not in dict.keys(seperated_frame):
+                print("signal")
+                chunks.append(current_chunk)
+                current_chunk = Chunk()
+                continue
 
-        current_chunk.add_frame(seperated_frame)
+            if len(seperated_frame["homePlayers"]) == 0 or len(seperated_frame["awayPlayers"]) == 0:
+                continue
 
-sub_chunks = []
-active_chunks = sorted(chunks, key=lambda c: c.count)[-2:]
-print(len(active_chunks))
+            current_chunk.add_frame(seperated_frame)
 
-for i, chunk in enumerate(active_chunks):
-    print(f"filtering chunk {i}")
-    for sub in chunk.filter():
-        sub_chunks.append(sub)
+    sub_chunks = []
+    active_chunks = sorted(chunks, key=lambda c: c.count)[-2:]
+    print(len(active_chunks))
 
-sub_chunks = [x for x in sub_chunks if x.count >= 50]
+    for i, chunk in enumerate(active_chunks):
+        print(f"filtering chunk {i}")
+        for sub in chunk.filter():
+            sub_chunks.append(sub)
 
-print(f"found chunks: {len(sub_chunks)}")
-for i, chunk in enumerate(tqdm(sub_chunks, desc="writing chunks to disk")):
-    chunk.write_to_file(f"{match_output_target}/chunk_{i}.csv")
+    sub_chunks = [x for x in sub_chunks if x.count >= 50]
+
+    print(f"found chunks: {len(sub_chunks)}")
+    for i, chunk in enumerate(tqdm(sub_chunks, desc="writing chunks to disk")):
+        chunk.write_to_file(f"{match_output_target}/chunk_{i}.csv")
+
+if __name__ == "__main__":
+    files = os.listdir(data_path)
+    for f in files:
+        run(f"{data_path}/{f}")
 
 #1307
