@@ -72,6 +72,10 @@ class PlayerDataset(Dataset):
             self.data[player_number] = np.array(player_data)
 
     def __len__(self):
+        l = (len(self.data) - self.sequence_length) * len(self.player_numbers)
+        if not (l >= 0):
+            print("Warning: dataset length is broken")
+            return 0
         return (len(self.data) - self.sequence_length) * len(self.player_numbers)
 
     def __getitem__(self, idx):
