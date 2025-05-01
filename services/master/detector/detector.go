@@ -1,13 +1,14 @@
 package detector
 
 import (
+	"math"
+	"strings"
+	"sync"
+
 	"github.com/Ygg-Drasill/DookieFilter/common/pringleBuffer"
 	"github.com/Ygg-Drasill/DookieFilter/common/types"
 	"github.com/Ygg-Drasill/DookieFilter/services/master/worker"
 	zmq "github.com/pebbe/zmq4"
-	"math"
-	"strings"
-	"sync"
 )
 
 type Worker struct {
@@ -52,8 +53,8 @@ func (w *Worker) Run(wg *sync.WaitGroup) {
 }
 
 const (
-	JumpThreshold = 5 //TODO: change me
-	HoleThreshold = 10 // Number of consecutive frames a player can be missing before it's considered a hole
+	JumpThreshold = 5  //TODO: change me
+	HoleThreshold = 20 // Number of consecutive frames a player can be missing before it's considered a hole
 )
 
 func (w *Worker) detect(frame types.SmallFrame) {
@@ -118,7 +119,7 @@ func (w *Worker) detectHoles(frame types.SmallFrame) {
 	for _, prevFrame := range prevFrames {
 		for _, player := range prevFrame.Players {
 			if !currentPlayers[player.PlayerId] {
-				w.Logger.Info("Player missing in frame", 
+				w.Logger.Info("Player missing in frame",
 					"player_id", player.PlayerId,
 					"frame", frame.FrameIdx,
 					"last_seen_frame", prevFrame.FrameIdx)
