@@ -6,6 +6,10 @@ import (
     "testing"
 )
 
+func TestSwap(t *testing.T) {
+
+}
+
 func TestPositionProximity(t *testing.T) {
     testCases := []struct {
         a, b     swapPlayer
