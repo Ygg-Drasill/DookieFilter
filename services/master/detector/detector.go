@@ -117,7 +117,7 @@ func (w *Worker) detectHoles(frame types.SmallFrame) {
 			if !w.holeFlags[playerId] {
 				// Player just went missing, set the flag.
 				w.holeFlags[playerId] = true // Set holeFlag to true when position is missing
-				w.Logger.Info("HoleFlag: Player %s started missing at frame %d", "player_id", playerId, "frame", currentFrame.FrameIdx)
+				w.Logger.Info("HoleFlag: Player %s started missing at frame %d", "player_id", playerId, "frame", frame.FrameIdx)
 				w.holeCount++ // Increment hole count when a player returns
 
 			}
@@ -131,7 +131,7 @@ func (w *Worker) detectHoles(frame types.SmallFrame) {
 			if w.holeFlags[playerId] {
 				// Player was missing and has now returned
 				w.holeFlags[playerId] = false // Reset holeFlag when player returns
-				w.Logger.Info("HoleFlag: Player %s returned at frame %d", "player_id", playerId, "frame", currentFrame.FrameIdx)
+				w.Logger.Info("HoleFlag: Player %s returned at frame %d", "player_id", playerId, "frame", frame.FrameIdx)
 			}
 		}
 	*/
