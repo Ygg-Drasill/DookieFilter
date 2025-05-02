@@ -53,8 +53,7 @@ func (w *Worker) Run(wg *sync.WaitGroup) {
 }
 
 const (
-	JumpThreshold = 5  //TODO: change me
-	HoleThreshold = 20 // Number of consecutive frames a player can be missing before it's considered a hole
+	JumpThreshold = 5 //TODO: change me
 )
 
 func (w *Worker) detect(frame types.SmallFrame) {
@@ -94,17 +93,15 @@ func (w *Worker) detect(frame types.SmallFrame) {
 	}
 }
 
-func (w *MockWorker) detectHoles(currentFrame types.SmallFrame) {
-	if w.lastProcessedFrame == nil {
-		// Cannot compare with a previous frame yet
+func (w *Worker) detectHoles(frame types.SmallFrame) {
+	prevFrame, err := w.stateBuffer.Get(pringleBuffer.Key(frame.FrameIdx - 1))
+	if err != nil {
+		w.Logger.Warn("No previous frame to compare")
 		return
 	}
-
-	prevFrame := *w.lastProcessedFrame
-
 	// Create sets for efficient lookup
 	currentPlayers := make(map[string]bool)
-	for _, player := range currentFrame.Players {
+	for _, player := range frame.Players {
 		currentPlayers[player.playerId] = true
 	}
 
@@ -128,14 +125,14 @@ func (w *MockWorker) detectHoles(currentFrame types.SmallFrame) {
 	}
 
 	/*
-	// Can be used later, if we want to check if players are returned
-	// Check for players who were missing but have returned
-	for playerId := range currentPlayers {
-		if w.holeFlags[playerId] {
-			// Player was missing and has now returned
-			w.holeFlags[playerId] = false // Reset holeFlag when player returns
-			w.Logger.Info("HoleFlag: Player %s returned at frame %d", "player_id", playerId, "frame", currentFrame.FrameIdx)
+		// Can be used later, if we want to check if players are returned
+		// Check for players who were missing but have returned
+		for playerId := range currentPlayers {
+			if w.holeFlags[playerId] {
+				// Player was missing and has now returned
+				w.holeFlags[playerId] = false // Reset holeFlag when player returns
+				w.Logger.Info("HoleFlag: Player %s returned at frame %d", "player_id", playerId, "frame", currentFrame.FrameIdx)
+			}
 		}
-	}
 	*/
 }
