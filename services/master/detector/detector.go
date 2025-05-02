@@ -17,6 +17,8 @@ type Worker struct {
 	socketListen *zmq.Socket
 
 	stateBuffer *pringleBuffer.PringleBuffer[types.SmallFrame]
+	holeFlags   map[string]bool
+	holeCount   int
 }
 
 func New(ctx *zmq.Context, options ...func(worker *Worker)) *Worker {
@@ -64,23 +66,23 @@ func (w *Worker) detect(frame types.SmallFrame) {
 	}
 	compareMap := make(map[string][]types.PlayerPosition)
 	for _, player := range prevFrame.Players {
-		_, ok := compareMap[player.playerId]
+		_, ok := compareMap[player.PlayerId]
 		if ok {
-			compareMap[player.playerId][0] = player
+			compareMap[player.PlayerId][0] = player
 		}
 		if !ok {
-			compareMap[player.playerId] = make([]types.PlayerPosition, 2)
-			compareMap[player.playerId][0] = player
+			compareMap[player.PlayerId] = make([]types.PlayerPosition, 2)
+			compareMap[player.PlayerId][0] = player
 		}
 	}
 	for _, player := range frame.Players {
-		_, ok := compareMap[player.playerId]
+		_, ok := compareMap[player.PlayerId]
 		if ok {
-			compareMap[player.playerId][1] = player
+			compareMap[player.PlayerId][1] = player
 		}
 		if !ok {
-			compareMap[player.playerId] = make([]types.PlayerPosition, 2)
-			compareMap[player.playerId][1] = player
+			compareMap[player.PlayerId] = make([]types.PlayerPosition, 2)
+			compareMap[player.PlayerId][1] = player
 		}
 	}
 
@@ -102,12 +104,12 @@ func (w *Worker) detectHoles(frame types.SmallFrame) {
 	// Create sets for efficient lookup
 	currentPlayers := make(map[string]bool)
 	for _, player := range frame.Players {
-		currentPlayers[player.playerId] = true
+		currentPlayers[player.PlayerId] = true
 	}
 
 	prevPlayers := make(map[string]bool)
 	for _, player := range prevFrame.Players {
-		prevPlayers[player.playerId] = true
+		prevPlayers[player.PlayerId] = true
 	}
 
 	// Check for players who were present before but are missing now
