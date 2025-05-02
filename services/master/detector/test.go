@@ -13,7 +13,7 @@ import (
 // MockWorker is a simplified version of the detector worker for testing
 type MockWorker struct {
 	stateBuffer        *pringleBuffer.PringleBuffer[types.SmallFrame]
-	missingPlayers     map[string]int // playerID -> startFrameIdx of missing period
+	holeFlags          map[string]bool // playerID -> holeFlag (true when position is missing)
 	lastProcessedFrame *types.SmallFrame
 	holeCount          int // Counter for total holes detected
 }
@@ -21,7 +21,7 @@ type MockWorker struct {
 func NewMockWorker() *MockWorker {
 	return &MockWorker{
 		stateBuffer:        pringleBuffer.New[types.SmallFrame](10), // Keep buffer for potential future use
-		missingPlayers:     make(map[string]int),
+		holeFlags:          make(map[string]bool),
 		lastProcessedFrame: nil,
 		holeCount:          0,
 	}
@@ -50,30 +50,22 @@ func (w *MockWorker) detectHoles(currentFrame types.SmallFrame) {
 	for playerID := range prevPlayers {
 		if !currentPlayers[playerID] {
 			// Player is missing in the current frame
-			if _, alreadyMissing := w.missingPlayers[playerID]; !alreadyMissing {
-				// Player just went missing, record start frame
-				w.missingPlayers[playerID] = currentFrame.FrameIdx
-				// log.Printf("Debug: Player %s started missing at frame %d", playerID, currentFrame.FrameIdx) // Optional debug log
+			if !w.holeFlags[playerID] {
+				// Player just went missing, set the flag
+				w.holeFlags[playerID] = true // Set holeFlag to true when position is missing
+				log.Printf("HoleFlag: Player %s started missing at frame %d", playerID, currentFrame.FrameIdx)
+				w.holeCount++ // Increment hole count when a player returns
+
 			}
 		}
 	}
 
 	// Check for players who were missing but have returned
 	for playerID := range currentPlayers {
-		if startFrame, wasMissing := w.missingPlayers[playerID]; wasMissing {
+		if w.holeFlags[playerID] {
 			// Player was missing and has now returned
-			endFrame := currentFrame.FrameIdx - 1
-			if startFrame <= endFrame { // Ensure start is not after end (can happen if missing for only one frame instant)
-				log.Printf("Hole detected: Player %s missing from frame %d to %d",
-					playerID, startFrame, endFrame)
-				w.holeCount++ // Increment hole count
-			} else {
-				// This case (startFrame > endFrame) implies the player reappeared immediately in the next frame.
-				// Depending on requirements, you might log this differently or ignore it.
-				// For now, we can log it as a brief disappearance or skip logging.
-				// log.Printf("Info: Player %s briefly disappeared and reappeared between frame %d and %d", playerID, prevFrame.FrameIdx, currentFrame.FrameIdx)
-			}
-			delete(w.missingPlayers, playerID) // Remove from missing map as they've returned
+			w.holeFlags[playerID] = false // Reset holeFlag when player returns
+			log.Printf("Player %s returned at frame %d", playerID, currentFrame.FrameIdx)
 		}
 	}
 }
@@ -158,12 +150,12 @@ func readHoleCSV(filePath string) ([]types.SmallFrame, error) {
 			if xIdx != -1 && yIdx != -1 {
 				x, err := strconv.ParseFloat(record[xIdx], 64)
 				if err != nil {
-					log.Printf("Error parsing x coordinate for player %s in frame %d: %v", playerID, frameIdx, err)
+					//log.Printf("Error parsing x coordinate for player %s in frame %d: %v", playerID, frameIdx, err)
 					continue
 				}
 				y, err := strconv.ParseFloat(record[yIdx], 64)
 				if err != nil {
-					log.Printf("Error parsing y coordinate for player %s in frame %d: %v", playerID, frameIdx, err)
+					//log.Printf("Error parsing y coordinate for player %s in frame %d: %v", playerID, frameIdx, err)
 					continue
 				}
 
@@ -188,7 +180,7 @@ func main() {
 	worker := NewMockWorker()
 
 	// Read frames from hole.csv
-	frames, err := readHoleCSV("../../../gym/data/chunk_0.csv")
+	frames, err := readHoleCSV("../../../data/holes/hole.csv")
 	if err != nil {
 		log.Fatalf("Error reading chunk_0.csv: %v", err)
 	}
@@ -198,7 +190,6 @@ func main() {
 	}
 
 	log.Printf("Processing %d frames...", len(frames))
-	lastFrameIdx := 0
 	// Process frames
 	for _, frame := range frames {
 		// We might still want the buffer for other potential analyses, so let's insert.
@@ -206,20 +197,20 @@ func main() {
 		worker.detectHoles(frame)
 		// Update the last processed frame *after* detecting holes based on the previous one
 		worker.lastProcessedFrame = &frame
-		if frame.FrameIdx > lastFrameIdx {
-			lastFrameIdx = frame.FrameIdx
-		}
 	}
 
+	// Can be used later, if we want to check for players still missing
+	/*
 	// After processing all frames, check for players still missing
-	if len(worker.missingPlayers) > 0 {
+	if len(worker.missingFlags) > 0 {
 		log.Println("Players still missing at the end of the data:")
-		for playerID, startFrame := range worker.missingPlayers {
-			log.Printf("  - Player %s missing from frame %d to end (last frame %d)",
-				playerID, startFrame, lastFrameIdx)
-			worker.holeCount++ // Increment hole count for players missing till the end
+		for playerID, isMissing := range worker.missingFlags {
+			if isMissing {
+				log.Printf("  - Player %s is still missing at the end", playerID)
+				worker.holeCount++ // Increment hole count for players missing till the end
+			}
 		}
-	}
+	} */
 
 	log.Println("Test completed")
 	log.Printf("Total holes detected: %d", worker.holeCount)

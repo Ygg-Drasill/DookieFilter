@@ -65,23 +65,23 @@ func (w *Worker) detect(frame types.SmallFrame) {
 	}
 	compareMap := make(map[string][]types.PlayerPosition)
 	for _, player := range prevFrame.Players {
-		_, ok := compareMap[player.PlayerId]
+		_, ok := compareMap[player.playerId]
 		if ok {
-			compareMap[player.PlayerId][0] = player
+			compareMap[player.playerId][0] = player
 		}
 		if !ok {
-			compareMap[player.PlayerId] = make([]types.PlayerPosition, 2)
-			compareMap[player.PlayerId][0] = player
+			compareMap[player.playerId] = make([]types.PlayerPosition, 2)
+			compareMap[player.playerId][0] = player
 		}
 	}
 	for _, player := range frame.Players {
-		_, ok := compareMap[player.PlayerId]
+		_, ok := compareMap[player.playerId]
 		if ok {
-			compareMap[player.PlayerId][1] = player
+			compareMap[player.playerId][1] = player
 		}
 		if !ok {
-			compareMap[player.PlayerId] = make([]types.PlayerPosition, 2)
-			compareMap[player.PlayerId][1] = player
+			compareMap[player.playerId] = make([]types.PlayerPosition, 2)
+			compareMap[player.playerId][1] = player
 		}
 	}
 
@@ -94,36 +94,48 @@ func (w *Worker) detect(frame types.SmallFrame) {
 	}
 }
 
-func (w *Worker) detectHoles(frame types.SmallFrame) {
-	// Get previous frames from the buffer
-	prevFrames := make([]types.SmallFrame, 0)
-	for i := 1; i <= HoleThreshold; i++ {
-		prevFrame, err := w.stateBuffer.Get(pringleBuffer.Key(frame.FrameIdx - i))
-		if err != nil {
-			w.Logger.Warn("No previous frame to compare")
-			return
-		}
-	}
-
-	if len(prevFrames) == 0 {
+func (w *MockWorker) detectHoles(currentFrame types.SmallFrame) {
+	if w.lastProcessedFrame == nil {
+		// Cannot compare with a previous frame yet
 		return
 	}
 
-	// Track players that appear in current frame
+	prevFrame := *w.lastProcessedFrame
+
+	// Create sets for efficient lookup
 	currentPlayers := make(map[string]bool)
-	for _, player := range frame.Players {
-		currentPlayers[player.PlayerId] = true
+	for _, player := range currentFrame.Players {
+		currentPlayers[player.playerId] = true
 	}
 
-	// Check each previous frame for missing players
-	for _, prevFrame := range prevFrames {
-		for _, player := range prevFrame.Players {
-			if !currentPlayers[player.PlayerId] {
-				w.Logger.Info("Player missing in frame",
-					"player_id", player.PlayerId,
-					"frame", frame.FrameIdx,
-					"last_seen_frame", prevFrame.FrameIdx)
+	prevPlayers := make(map[string]bool)
+	for _, player := range prevFrame.Players {
+		prevPlayers[player.playerId] = true
+	}
+
+	// Check for players who were present before but are missing now
+	for playerId := range prevPlayers {
+		if !currentPlayers[playerId] {
+			// Player is missing in the current frame
+			if !w.holeFlags[playerId] {
+				// Player just went missing, set the flag
+				w.holeFlags[playerId] = true // Set holeFlag to true when position is missing
+				w.Logger.Info("HoleFlag: Player %s started missing at frame %d", "player_id", playerId, "frame", currentFrame.FrameIdx)
+				w.holeCount++ // Increment hole count when a player returns
+
 			}
 		}
 	}
+
+	/*
+	// Can be used later, if we want to check if players are returned
+	// Check for players who were missing but have returned
+	for playerId := range currentPlayers {
+		if w.holeFlags[playerId] {
+			// Player was missing and has now returned
+			w.holeFlags[playerId] = false // Reset holeFlag when player returns
+			w.Logger.Info("HoleFlag: Player %s returned at frame %d", "player_id", playerId, "frame", currentFrame.FrameIdx)
+		}
+	}
+	*/
 }
