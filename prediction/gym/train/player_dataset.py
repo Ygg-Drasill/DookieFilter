@@ -1,6 +1,7 @@
 import math
 import os
 import pickle
+import random
 import typing
 
 import pandas as pd
@@ -97,16 +98,22 @@ class PlayerDataset(Dataset):
             for chunk_file in md:
                 chunk_files.append(os.path.join(match_dir, chunk_file))
 
-        player_dataset = ConcatDataset(
-            [PlayerDataset(f"{chunk_dir}/{path}", sequence_length, n_nearest) for path in tqdm(chunk_files,
+        random.shuffle(chunk_files)
+        split_index = int(len(chunk_files) * split_ratio)
+        train_chunks = chunk_files[:split_index]
+        validation_chunks = chunk_files[split_index:]
+
+        train_set = ConcatDataset(
+            [PlayerDataset(f"{chunk_dir}/{path}", sequence_length, n_nearest) for path in tqdm(train_chunks,
                                                                                                 unit='chunk',
-                                                                                                desc='building dataset from chunks',
+                                                                                                desc='building training dataset from chunks',
                                                                                                 ncols=200)])
+        validation_set = ConcatDataset(
+            [PlayerDataset(f"{chunk_dir}/{path}", sequence_length, n_nearest) for path in tqdm(validation_chunks,
+                                                                                               unit='chunk',
+                                                                                               desc='building training dataset from chunks',
+                                                                                               ncols=200)])
 
-        train_size = math.floor(len(player_dataset) * split_ratio)
-        validation_size = len(player_dataset) - train_size
-
-        train_set, validation_set = torch.utils.data.random_split(player_dataset, [train_size, validation_size])
         split_set = {"train": train_set, "validation": validation_set}
         PlayerDataset.dump_cache(cache_file, split_set)
 

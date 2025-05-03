@@ -6,12 +6,46 @@ import pandas as pd
 import torch
 from matplotlib import pyplot as plt
 from torch import nn
+from torch.utils.data import DataLoader, ConcatDataset, Dataset
+from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 
-from torch.utils.data import DataLoader, ConcatDataset
-from dataloader import MatchDataset
-from model import PlayerPredictor
-from player_dataset import PlayerDataset
 from epoch import train_epoch, validate_epoch
+from gym.board_logger import BoardLogger
+from model.player_predictor import PlayerPredictor
+from player_dataset import PlayerDataset
+from test import test_model
+
+
+def format_model_name(n_nearest_players, stack_size, hidden_size, lr, epochs, batch_size, n_parameters = 0):
+    if n_nearest_players > 0:
+        return f'{n_nearest_players}-{stack_size}-{hidden_size}-{lr}-{epochs}-{batch_size}-{n_parameters}'
+    return f'{n_nearest_players}-{stack_size}-{hidden_size}-{lr}-{epochs}-{batch_size}'
+
+
+export_directory: str
+summary_writer: SummaryWriter
+dataset_split_ratio: float
+device: str
+chunk_path: str
+player_numbers: list[str]
+hyper_parameters: dict
+
+train_set: PlayerDataset
+validation_set: PlayerDataset
+train_dataloader: DataLoader
+validation_dataloader: DataLoader
+
+def init():
+    global export_directory
+    global summary_writer
+    global dataset_split_ratio
+    global device
+    global chunk_path
+    global player_numbers
+    global hyper_parameters
+
+    export_directory = os.path.abspath(f'../runs')
 
 if __name__ == '__main__':
     torch.random.seed()
@@ -31,13 +65,14 @@ if __name__ == '__main__':
     # }
 
     hyper_parameters = {
-        'n_nearest_players': [8], #3-5
-        'stack_size': [4], #4-32
-        'hidden_size': [64], #32-128
+        'n_nearest_players': [3], #3-5
+        'stack_size': [3], #4-32
+        'hidden_size': [512], #32-128
         'sequence_length': [20], #20-40
         'batch_size': [64],
-        'lr': [0.0001], #0.0001-0.00001
+        'lr': [0.001], #0.0001-0.00001
     }
+    datasets = {}
 
 if __name__ == '__init__':
     init()
@@ -51,24 +86,7 @@ def train_model(
     lr: float
 ):
     print(f'n:{n_nearest} stack_size:{stack_size} hidden_size:{hidden_size} seq:{sequence_length} lr:{lr} batch_size:{batch_size}')
-    match_files = os.listdir(chunk_path)
-    chunk_files = []
-
-    for d in match_files:
-        mf = os.listdir(chunk_path + '/' + d)
-        for f in mf:
-            chunk_files.append(os.path.join(d, f))
-
-    chunk_sizes = [pd.read_csv(f"{chunk_path}/{p}").shape[0] for p in chunk_files]
-    total_samples = sum(chunk_sizes)
-    average_chunk_size = total_samples // len(chunk_sizes)
-    print(f"found {len(chunk_sizes)} chunks of {total_samples} samples with average chunk size {average_chunk_size}")
-
-    train_set, validation_set = PlayerDataset.from_dir(chunk_path, n_nearest, sequence_length)
-    train_dataloader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=1)
-    validation_dataloader = DataLoader(validation_set, batch_size=batch_size, shuffle=True, num_workers=1)
-
-    model = PlayerPredictor(device, n_nearest_players, 32, 4)
+    model = PlayerPredictor(device, n_nearest, hidden_size, stack_size)
     model.to(device)
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
     epochs = 20
@@ -92,10 +110,10 @@ def train_model(
 
     torch.save(model.state_dict(), os.path.abspath("./model.pth"))
 
-        model_name =format_model_name(n_nearest, stack_size, hidden_size, lr, epochs, batch_size, n_parameters)
+        model_name = format_model_name(n_nearest, stack_size, hidden_size, lr, epochs, batch_size, n_parameters)
         model_path = f'{export_directory}/models/{model_name}.pt'
 
-        figure = test_model(model, "../data/test/chunk_395.csv")
+        figure = test_model(model, "../data/f361a535-4d7e-4470-a187-01074c0046fe/chunk_60.csv")
         writer.add_figure(f"Prediction example {model_name}", figure=figure, global_step=epoch)
         writer.flush()
         if validation_loss < validation_loss_low:
@@ -117,14 +135,32 @@ def train_model(
     writer.flush()
     writer.close()
 
+def load_dataset(n_nearest: int, sequence_length: int, batch_size: int):
+    match_directories, chunk_files = os.listdir(chunk_path), []
+    for directory in match_directories:
+        match_files = os.listdir(chunk_path + '/' + directory)
+        for file_name in match_files:
+            chunk_files.append(os.path.join(directory, file_name))
+
+    chunk_sizes = [pd.read_csv(f"{chunk_path}/{p}").shape[0] for p in chunk_files]
+    total_samples = sum(chunk_sizes)
+    average_chunk_size = total_samples // len(chunk_sizes)
+    print(f"found {len(chunk_sizes)} chunks of {total_samples} samples with average chunk size {average_chunk_size}")
+    global train_set, validation_set, train_dataloader, validation_dataloader
+    train_set, validation_set = PlayerDataset.from_dir(chunk_path, n_nearest, sequence_length)
+    train_dataloader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=1)
+    validation_dataloader = DataLoader(validation_set, batch_size=batch_size, shuffle=True, num_workers=1)
+
 
 def parameters() -> Generator[tuple[int, int, int, int, int, float], None, None]:
     """n_nearest, stack_size, hidden_size, sequence_length, batch_size, learning_rate"""
+
     for n_nearest in hyper_parameters['n_nearest_players']:
-        for stack_size in hyper_parameters['stack_size']:
-            for hidden_size in hyper_parameters['hidden_size']:
-                for sequence_length in hyper_parameters['sequence_length']:
-                    for batch_size in hyper_parameters['batch_size']:
+        for sequence_length in hyper_parameters['sequence_length']:
+            for batch_size in hyper_parameters['batch_size']:
+                load_dataset(n_nearest, sequence_length, batch_size)
+                for stack_size in hyper_parameters['stack_size']:
+                    for hidden_size in hyper_parameters['hidden_size']:
                         for lr in hyper_parameters['lr']:
                             yield n_nearest, stack_size, hidden_size, sequence_length, batch_size, lr
 

@@ -8,7 +8,10 @@ from gym.board_logger import BoardLogger
 
 progress_bar_columns = 200
 
-LOSS_SCALE = 1_000_000
+LOSS_SCALE = 1
+LOSS_MOVEMENT_SCALE = 0.1
+LOSS_ANGLE_SCALE = 0.1
+
 MIN_MOVEMENT_THRESHOLD = 0.5
 
 
@@ -23,7 +26,6 @@ def train_epoch(epoch: int,
 
     model.train(True)
     torch.set_grad_enabled(True)
-    print("making dataloader")
     progress_dataloader = tqdm(dataloader,
                                ncols=progress_bar_columns,
                                desc=f"Training Epoch {epoch + 1}/{epoch_total}",
@@ -31,7 +33,6 @@ def train_epoch(epoch: int,
 
     running_loss = 0.0
     total = 0
-    print("starting batch enumeration")
     for batch_index, batch in enumerate(progress_dataloader):
         batch_x: torch.Tensor
         batch_y: torch.Tensor
@@ -43,8 +44,14 @@ def train_epoch(epoch: int,
 
         low_movement_penalty = torch.clamp(MIN_MOVEMENT_THRESHOLD - delta.abs(), min=0.0)
 
+        prev_delta = batch_x[:, -1, 0: 2] - batch_x[:, -2, 0: 2]
+        cos_similarity = torch.nn.functional.cosine_similarity(prev_delta, delta)
+        angle_penalty = 1 - cos_similarity.mean()
+
         loss = loss_function(output, batch_y)
-        running_loss += (loss.item()*LOSS_SCALE)
+        running_loss += (loss.item() * LOSS_SCALE +
+                         low_movement_penalty * LOSS_MOVEMENT_SCALE +
+                         angle_penalty * LOSS_ANGLE_SCALE)
         total += 1
         optimizer.zero_grad()
         loss.backward()

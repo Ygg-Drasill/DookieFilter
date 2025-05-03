@@ -33,7 +33,7 @@ class PlayerPredictor(nn.Module):
         decoded_delta_y = (out[:, 1] - 0.5) * (2 * MAX_NORMALIZED_Y_DELTA)
         decoded_delta = torch.stack([decoded_delta_x, decoded_delta_y], dim=1)
 
-        prev_pos = x[:, -1, 0:2]
+        prev_pos = x[:, -1, 0:2] #pick the first two elements of the input tensor (target player position)
         prediction = prev_pos + decoded_delta
 
         return prediction, decoded_delta
