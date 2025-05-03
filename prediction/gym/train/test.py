@@ -58,4 +58,4 @@ def test_model(model: PlayerPredictor, test_data_path: str) -> Figure:
 
 if __name__ == "__main__":
     model = load_model("../runs/models/5-4-64-0.0001-20-64-123010.pt")
-    test_model(model, test_data_path="../data/test/chunk_395.csv")
+    test_model(model, test_data_path="../data/a8761568-ed19-4191-b96b-486a0c1b757d/chunk_60.csv")

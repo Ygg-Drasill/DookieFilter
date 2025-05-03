@@ -2,6 +2,8 @@ import csv
 import json
 import os
 import sys
+import uuid
+
 import numpy as np
 from tqdm import tqdm
 
@@ -61,7 +63,12 @@ def run(path):
             init = True
             if not os.path.exists(output_target):
                 os.mkdir(output_target)
-            match_output_target = output_target + "/" + packet["gameId"]
+            game_id = ""
+            if "gameId" in packet:
+                game_id = packet["gameId"]
+            else:
+                game_id = "unknown" + str(uuid.uuid4())
+            match_output_target = output_target + "/" + game_id
             if not os.path.exists(match_output_target):
                 os.mkdir(match_output_target)
 
