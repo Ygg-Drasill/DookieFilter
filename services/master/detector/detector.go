@@ -1,11 +1,16 @@
 package detector
 
 import (
+	"encoding/json"
 	"math"
 	"strings"
 	"sync"
+	"reflect"
+	"time"
+	"testing"
 
 	"github.com/Ygg-Drasill/DookieFilter/common/pringleBuffer"
+	"github.com/Ygg-Drasill/DookieFilter/common/socket/endpoints"
 	"github.com/Ygg-Drasill/DookieFilter/common/types"
 	"github.com/Ygg-Drasill/DookieFilter/services/master/worker"
 	zmq "github.com/pebbe/zmq4"
@@ -15,6 +20,7 @@ type Worker struct {
 	worker.BaseWorker
 
 	socketListen *zmq.Socket
+	socketSend   *zmq.Socket
 
 	stateBuffer *pringleBuffer.PringleBuffer[types.SmallFrame]
 	holeFlags   map[string]bool
@@ -125,16 +131,33 @@ func (w *Worker) detectHoles(frame types.SmallFrame) {
 			}
 		}
 	}
+	var err error
+	w.socketSend, err = w.SocketContext.NewSocket(zmq.PUSH)
+	if err != nil {
+		w.Logger.Error("Failed to create socket", "error", err)
+		return
+	}
+	err = w.socketSend.Connect(endpoints.InProcessEndpoint(endpoints.COLLECTOR))
+	if err != nil {
+		w.Logger.Error("Failed to connect socket", "error", err)
+		return
+	}
 
-	/*
-		// Can be used later, if we want to check if players are returned
-		// Check for players who were missing but have returned
-		for playerId := range currentPlayers {
-			if w.holeFlags[playerId] {
-				// Player was missing and has now returned
-				w.holeFlags[playerId] = false // Reset holeFlag when player returns
-				w.Logger.Info("HoleFlag: Player %s returned at frame %d", "player_id", playerId, "frame", frame.FrameIdx)
-			}
-		}
-	*/
+	// Declare message first, then assign to existing err
+	var message []byte
+	message, err = json.Marshal(frame)
+	if err != nil {
+		w.Logger.Error("Failed to marshal frame to JSON", "error", err)
+		return
+	}
+
+	// Declare messageLength first, then assign to existing err
+	var messageLength int
+	messageLength, err = w.socketSend.SendMessage("frame", message)
+	if err != nil {
+		// Use messageLength in the error log
+		w.Logger.Error("Failed to send message", "length", messageLength, "error", err)
+	}
 }
+
+
