@@ -35,22 +35,6 @@ jobs:
         working-directory: ./common
         run: go test -v ./...
 
-  test-service-master:
-    runs-on: ubuntu-latest
-    needs: setup
-    steps:
-      - uses: actions/checkout@v4
-      - name: Restore Go Modules
-        uses: actions/cache@v4
-        with:
-          path: ~/go/pkg/mod
-          key: go-mod-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            go-mod-${{ runner.os }}-
-      - name: Test Common
-        working-directory: ./services/master
-        run: go test -v ./...
-
   build-transmit:
     runs-on: ubuntu-latest
     needs: setup
@@ -69,7 +53,7 @@ jobs:
         working-directory: ./mock/transmit
         run: go build -v ./...
 
-  build-master:
+  build-test-service-master:
     runs-on: ubuntu-latest
     needs: setup
     steps:
@@ -86,6 +70,8 @@ jobs:
       - name: Build Master
         working-directory: ./services/master
         run: go build -v ./...
+      - name: Test Master
+        run: go test -v ./...
 
   build-visunator:
     runs-on: ubuntu-latest
