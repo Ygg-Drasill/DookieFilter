@@ -95,7 +95,7 @@ func (w *Worker) detect(frame types.SmallFrame) {
         yDiff := math.Abs(values[0].Position.Y - values[1].Position.Y)
         if xDiff > JumpThreshold || yDiff > JumpThreshold {
             w.Logger.Info("Jump detected", "player_id", playerId, "x_diff", xDiff, "y_diff", yDiff, "frame", frame.FrameIdx)
-            checkPlayer[fmt.Sprintf("%s:%d:0", playerId, frame.FrameIdx)] = values[0]
+            checkPlayer[fmt.Sprintf("%s:%d:0", playerId, prevFrame.FrameIdx)] = values[0]
             checkPlayer[fmt.Sprintf("%s:%d:1", playerId, frame.FrameIdx)] = values[1]
         }
         if c == len(compareMap)-1 && frame.FrameIdx%5 == 0 {
@@ -142,11 +142,9 @@ func (w *Worker) swap(parity bool, p map[string]types.PlayerPosition) {
                 w.Logger.Error("Failed to parse frame index", "error", err)
                 continue
             }
-            if q[2] == "0" {
-                s -= 1
-            }
             player.FrameIdx = s
             player.PlayerId = q[0]
+            p[k] = player
         }
         if strings.HasSuffix(k, ":0") {
             pf = append(pf, swapPlayer{key: k, player: player})
@@ -223,39 +221,47 @@ func swapPlayers(
     p[p2.key] = p2.player
 }
 
-func (w *Worker) jump(p map[string]types.PlayerPosition) {
-    var p1, p2 string
+func (w *Worker) jump(p map[string]types.PlayerPosition) bool {
+    var pf, cf types.PlayerPosition
+
     for k, player := range p {
-        if player.FrameIdx == 0 {
-            fmt.Println("hole")
-            return
-        }
         if strings.HasSuffix(k, ":0") {
-            p1 = k
+            pf = player
         }
         if strings.HasSuffix(k, ":1") {
-            p2 = k
+            cf = player
         }
     }
-    k := p[p1].FrameIdx
-    s, err := w.stateBuffer.Get(pringleBuffer.Key(k))
-    if err != nil {
-        w.Logger.Warn("No previous frame to compare")
-        return
-    }
-    for _, player := range s.Players {
-        if player.Position == p[p1].Position && player.PlayerId != p[p1].PlayerId {
-            fmt.Println("Jump detected", player.PlayerId)
-            return
-        }
-        if player.Position == p[p2].Position && player.PlayerId != p[p2].PlayerId {
-            fmt.Println("Jump detected", player.PlayerId)
-            return
-        }
-        if player.Position == p[p1].Position {
-            fmt.Println("Jump detected", p[p1].PlayerId)
-            return
-        }
 
+    if pf.FrameIdx == 0 {
+        w.Logger.Warn("hole", "key", pf.PlayerId, "player", pf)
+        return false
     }
+    if cf.FrameIdx == 0 {
+        w.Logger.Warn("hole", "key", cf.PlayerId, "player", cf)
+        return false
+    }
+
+    prevFrame, err := w.stateBuffer.Get(pringleBuffer.Key(pf.FrameIdx))
+    if err != nil {
+        w.Logger.Warn("No previous frame to compare", "frame", pf.FrameIdx)
+        return false
+    }
+
+    for _, player := range prevFrame.Players {
+        if player.PlayerId != cf.PlayerId &&
+            positionsEqual(player.Position, cf.Position) {
+            w.Logger.Info("Duplicate player coordinates detected",
+                "jump_player", cf,
+                "real_player", player)
+            return true
+        }
+    }
+    return false
+}
+
+func positionsEqual(p1, p2 types.Position) bool {
+    const e = 0.01
+    return math.Abs(p1.X-p2.X) < e &&
+        math.Abs(p1.Y-p2.Y) < e
 }
