@@ -71,6 +71,7 @@ jobs:
         working-directory: ./services/master
         run: go build -v ./...
       - name: Test Master
+        working-directory: ./services/master
         run: go test -v ./...
 
   build-visunator:
