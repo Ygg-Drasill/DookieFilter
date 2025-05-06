@@ -2,18 +2,14 @@ package detector
 
 import (
 	"encoding/json"
-	"math"
-	"strings"
-	"sync"
-	"reflect"
-	"time"
-	"testing"
-
 	"github.com/Ygg-Drasill/DookieFilter/common/pringleBuffer"
 	"github.com/Ygg-Drasill/DookieFilter/common/socket/endpoints"
 	"github.com/Ygg-Drasill/DookieFilter/common/types"
 	"github.com/Ygg-Drasill/DookieFilter/services/master/worker"
 	zmq "github.com/pebbe/zmq4"
+	"math"
+	"strings"
+	"sync"
 )
 
 type Worker struct {
@@ -22,15 +18,15 @@ type Worker struct {
 	socketListen *zmq.Socket
 	socketSend   *zmq.Socket
 
-	stateBuffer *pringleBuffer.PringleBuffer[types.SmallFrame]
-	holeFlags   map[string]bool
-	holeCount   int
+	StateBuffer *pringleBuffer.PringleBuffer[types.SmallFrame]
+	HoleFlags   map[string]bool
+	HoleCount   int
 }
 
 func New(ctx *zmq.Context, options ...func(worker *Worker)) *Worker {
 	w := &Worker{
 		BaseWorker:  worker.NewBaseWorker(ctx, "detector"),
-		stateBuffer: pringleBuffer.New[types.SmallFrame](10),
+		StateBuffer: pringleBuffer.New[types.SmallFrame](10),
 	}
 	for _, opt := range options {
 		opt(w)
@@ -53,9 +49,9 @@ func (w *Worker) Run(wg *sync.WaitGroup) {
 		if topic == "frame" {
 			message, _ := w.socketListen.RecvMessage(0)
 			frame := types.DeserializeFrame(strings.Join(message, ""))
-			w.stateBuffer.Insert(frame)
+			w.StateBuffer.Insert(frame)
 			w.detect(frame)
-			w.detectHoles(frame)
+			w.DetectHoles(frame)
 		}
 	}
 }
@@ -65,7 +61,7 @@ const (
 )
 
 func (w *Worker) detect(frame types.SmallFrame) {
-	prevFrame, err := w.stateBuffer.Get(pringleBuffer.Key(frame.FrameIdx - 1))
+	prevFrame, err := w.StateBuffer.Get(pringleBuffer.Key(frame.FrameIdx - 1))
 	if err != nil {
 		w.Logger.Warn("No previous frame to compare")
 		return
@@ -101,8 +97,8 @@ func (w *Worker) detect(frame types.SmallFrame) {
 	}
 }
 
-func (w *Worker) detectHoles(frame types.SmallFrame) {
-	prevFrame, err := w.stateBuffer.Get(pringleBuffer.Key(frame.FrameIdx - 1))
+func (w *Worker) DetectHoles(frame types.SmallFrame) {
+	prevFrame, err := w.StateBuffer.Get(pringleBuffer.Key(frame.FrameIdx - 1))
 	if err != nil {
 		w.Logger.Warn("No previous frame to compare")
 		return
@@ -122,16 +118,15 @@ func (w *Worker) detectHoles(frame types.SmallFrame) {
 	for playerId := range prevPlayers {
 		if !currentPlayers[playerId] {
 			// Player is missing in the current frame
-			if !w.holeFlags[playerId] {
+			if !w.HoleFlags[playerId] {
 				// Player just went missing, set the flag.
-				w.holeFlags[playerId] = true // Set holeFlag to true when position is missing
+				w.HoleFlags[playerId] = true // Set holeFlag to true when position is missing
 				w.Logger.Info("HoleFlag: Player %s started missing at frame %d", "player_id", playerId, "frame", frame.FrameIdx)
-				w.holeCount++ // Increment hole count when a player returns
+				w.HoleCount++ // Increment hole count when a player returns
 
 			}
 		}
 	}
-	var err error
 	w.socketSend, err = w.SocketContext.NewSocket(zmq.PUSH)
 	if err != nil {
 		w.Logger.Error("Failed to create socket", "error", err)
@@ -159,5 +154,3 @@ func (w *Worker) detectHoles(frame types.SmallFrame) {
 		w.Logger.Error("Failed to send message", "length", messageLength, "error", err)
 	}
 }
-
-
