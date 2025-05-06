@@ -69,24 +69,24 @@ func TestDetectHoles(t *testing.T) {
 }
 
 func TestSocketSend(t *testing.T) {
-	// Step 1: Set up the Worker with ZeroMQ context
+	//Set up the Worker with ZeroMQ context
 	ctx, _ := zmq.NewContext()
 	defer func(ctx *zmq.Context) {
 		err := ctx.Term()
 		if err != nil {
-
+			t.Error(err)
 		}
 	}(ctx) // Ensure context is terminated after the test
 
 	// Create a new worker
 	w := detector.New(ctx)
 
-	// Step 2: Create a ZeroMQ socket for testing
+	//Create a ZeroMQ socket for testing
 	receiver, _ := ctx.NewSocket(zmq.PULL) // Receiver socket
 	defer func(receiver *zmq.Socket) {
 		err := receiver.Close()
 		if err != nil {
-
+			t.Error(err)
 		}
 	}(receiver)
 
@@ -95,20 +95,20 @@ func TestSocketSend(t *testing.T) {
 	err := receiver.Bind(testEndpoint)
 	assert.NoError(t, err, "Receiver should bind to the test endpoint")
 
-	// Step 3: Set up the sender socket in the Worker
+	//Set up the sender socket in the Worker
 	w.SocketSend, err = w.SocketContext.NewSocket(zmq.PUSH)
 	assert.NoError(t, err, "Should create PUSH socket")
 	defer func(SocketSend *zmq.Socket) {
 		err := SocketSend.Close()
 		if err != nil {
-
+			t.Error(err)
 		}
 	}(w.SocketSend)
 
 	err = w.SocketSend.Connect(testEndpoint)
 	assert.NoError(t, err, "Sender should connect to the test endpoint")
 
-	// Step 4: Prepare a test frame to send
+	//Prepare a test frame to send
 	frame := types.SmallFrame{
 		FrameIdx: 1,
 		Players: []types.PlayerPosition{
@@ -124,7 +124,7 @@ func TestSocketSend(t *testing.T) {
 	_, err = w.SocketSend.SendMessage("frame", message)
 	assert.NoError(t, err, "Should send the message without error")
 
-	// Step 5: Receive and verify the message on the receiver socket
+	//Receive and verify the message on the receiver socket
 	receivedParts, err := receiver.RecvMessageBytes(0)
 	assert.NoError(t, err, "Should receive a message without error")
 	assert.Equal(t, 2, len(receivedParts), "Message should have 2 parts (topic + body)")
