@@ -14,6 +14,12 @@ import (
 func TestDetectHoles(t *testing.T) {
 	//Create a new detector Worker
 	ctx, _ := zmq.NewContext()
+	defer func(ctx *zmq.Context) {
+		err := ctx.Term()
+		if err != nil {
+			t.Error(err)
+		}
+	}(ctx)
 	w := detector.New(ctx)
 	w.HoleFlags = make(map[string]bool)
 	w.HoleCount = 0
