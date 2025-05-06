@@ -1,6 +1,7 @@
 package detector
 
 import (
+	"errors"
 	"fmt"
 	"github.com/Ygg-Drasill/DookieFilter/common/pringleBuffer"
 	"github.com/Ygg-Drasill/DookieFilter/common/types"
@@ -58,10 +59,15 @@ const JumpThreshold = 5 //TODO: change me
 func (w *Worker) detect(frame types.SmallFrame) {
 	var checkPlayer = make(map[string]types.PlayerPosition)
 	prevFrame, err := w.stateBuffer.Get(pringleBuffer.Key(frame.FrameIdx - 1))
-	if err != nil {
+	if errors.Is(err, pringleBuffer.PringleBufferError{}) {
 		w.Logger.Warn("No previous frame to compare")
 		return
 	}
+	if err != nil {
+		w.Logger.Error("Failed to get previous frame", "error", err)
+		return
+	}
+
 	compareMap := make(map[string][]types.PlayerPosition)
 	for _, player := range prevFrame.Players {
 		_, ok := compareMap[player.PlayerId]

@@ -2,16 +2,12 @@ import csv
 import json
 import os
 import sys
+import uuid
+
 import numpy as np
+from tqdm import tqdm
 
-data_path = sys.argv[1]
-output_target = sys.argv[2]
-
-file = open(data_path)
-data = []
-data_fields = ["frame_index", "ball_x", "ball_y"]
-frame_idx = []
-chunk_index = 0
+from gym.chunk.chunk import Chunk
 
 def save_game_chunk(chunk_file_index, output_target_dir, fields, data_chunk):
     file_name = "chunk_" + str(chunk_file_index) + ".csv"
@@ -41,43 +37,71 @@ def add_player_data(player_data, frame_data, frame_fields, player_prefix: str):
     if key_y not in frame_fields:
         frame_fields.append(key_y)
 
-init = False
-game_active = False
 
-for line in file:
-    packet = json.loads(line)
-    if not init and not os.path.exists(output_target):
-        init = True
-        output_target = output_target + "/" + packet["gameId"]
-        os.mkdir(output_target)
 
-    for seperated_frame in packet["data"]:
-        if "frameIdx" not in dict.keys(seperated_frame):
-            print("signal")
-            if game_active:
-                save_game_chunk(chunk_index, output_target + "/", data_fields, data)
-                chunk_index += 1
-                data = []
-            game_active = not game_active
-            continue
-        if len(seperated_frame["homePlayers"]) == 0 or len(seperated_frame["awayPlayers"]) == 0:
-            continue
-        if not game_active:
-            continue
+data_path = sys.argv[1]
+output_target = sys.argv[2]
 
-        idx = seperated_frame["frameIdx"]
-        frame_idx.append(idx)
-        home_players = seperated_frame["homePlayers"]
-        away_players = seperated_frame["awayPlayers"]
-        frame = {
-            "frame_index": idx,
-            "ball_x": seperated_frame["ball"]["xyz"][0],
-            "ball_y": seperated_frame["ball"]["xyz"][1],
-        }
 
-        for player in home_players:
-            add_player_data(player, frame, data_fields, "h_")
-        for player in away_players:
-            add_player_data(player, frame, data_fields, "a_")
+def run(path):
+    match_output_target = ""
+    file = open(path)
+    chunks: list[Chunk] = []
+    data_fields = ["frame_index", "ball_x", "ball_y"]
+    frame_idx = []
+    chunk_index = 0
 
-        data.append(frame)
+    game_active = False
+
+    current_chunk = Chunk()
+    init = False
+
+    for line in file:
+        packet = json.loads(line)
+
+        if not init:
+            init = True
+            if not os.path.exists(output_target):
+                os.mkdir(output_target)
+            game_id = ""
+            if "gameId" in packet:
+                game_id = packet["gameId"]
+            else:
+                game_id = "unknown" + str(uuid.uuid4())
+            match_output_target = output_target + "/" + game_id
+            if not os.path.exists(match_output_target):
+                os.mkdir(match_output_target)
+
+        for seperated_frame in packet["data"]:
+            if "frameIdx" not in dict.keys(seperated_frame):
+                print("signal")
+                chunks.append(current_chunk)
+                current_chunk = Chunk()
+                continue
+
+            if len(seperated_frame["homePlayers"]) == 0 or len(seperated_frame["awayPlayers"]) == 0:
+                continue
+
+            current_chunk.add_frame(seperated_frame)
+
+    sub_chunks = []
+    active_chunks = sorted(chunks, key=lambda c: c.count)[-2:]
+    print(len(active_chunks))
+
+    for i, chunk in enumerate(active_chunks):
+        print(f"filtering chunk {i}")
+        for sub in chunk.filter():
+            sub_chunks.append(sub)
+
+    sub_chunks = [x for x in sub_chunks if x.count >= 50]
+
+    print(f"found chunks: {len(sub_chunks)}")
+    for i, chunk in enumerate(tqdm(sub_chunks, desc="writing chunks to disk")):
+        chunk.write_to_file(f"{match_output_target}/chunk_{i}.csv")
+
+if __name__ == "__main__":
+    files = os.listdir(data_path)
+    for f in files:
+        run(f"{data_path}/{f}")
+
+#1307

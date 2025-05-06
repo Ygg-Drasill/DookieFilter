@@ -67,10 +67,13 @@ func (pb *PringleBuffer[TElement]) Get(key Key) (TElement, error) {
 	var empty TElement
 	var element *PringleElement[TElement]
 	current := pb.head
+	if current == nil {
+		return empty, EmptyError{}
+	}
 	for current.Key() != key {
 		current = current.next
 		if current == nil {
-			return empty, PringleBufferError{msg: "element does not exist"}
+			return empty, NotFoundError{key: key}
 		}
 	}
 	element = current

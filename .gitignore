@@ -1,4 +1,7 @@
 *.jsonl
 .idea
 .env
+.venv
 *__pycache__
+prediction/gym/runs/player
+data

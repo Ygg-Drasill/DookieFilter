@@ -73,11 +73,11 @@ func SerializeFrame(frame SmallFrame) string {
 	parts := make([]string, len(frame.Players))
 
 	for i, player := range frame.Players {
-		playerData := fmt.Sprintf("%s;%f;%f", player.PlayerId, player.X, player.Y)
+		playerData := fmt.Sprintf("%s;%g;%g", player.PlayerId, player.X, player.Y)
 		parts[i] = playerData
 	}
 
-	ballString := fmt.Sprintf("%f;%f", frame.Ball.X, frame.Ball.Y)
+	ballString := fmt.Sprintf("%g;%g", frame.Ball.X, frame.Ball.Y)
 
 	return fmt.Sprintf("%d:%s:%s", frameIdx, ballString, strings.Join(parts, ","))
 }
@@ -108,6 +108,7 @@ func DeserializeFrame(data string) SmallFrame {
 			x, _ := strconv.ParseFloat(playerData[1], 64)
 			y, _ := strconv.ParseFloat(playerData[2], 64)
 			player := PlayerPosition{
+				FrameIdx: frameIdx,
 				PlayerId: playerData[0],
 				FrameIdx: frameIdx,
 				Position: Position{
