@@ -110,7 +110,6 @@ func DeserializeFrame(data string) SmallFrame {
 			player := PlayerPosition{
 				FrameIdx: frameIdx,
 				PlayerId: playerData[0],
-				FrameIdx: frameIdx,
 				Position: Position{
 					X: x,
 					Y: y,
