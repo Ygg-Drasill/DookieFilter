@@ -2,6 +2,8 @@ package detector
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/Ygg-Drasill/DookieFilter/common/pringleBuffer"
 	"github.com/Ygg-Drasill/DookieFilter/common/socket/endpoints"
 	"github.com/Ygg-Drasill/DookieFilter/common/types"
@@ -61,39 +63,61 @@ const (
 )
 
 func (w *Worker) detect(frame types.SmallFrame) {
-	prevFrame, err := w.StateBuffer.Get(pringleBuffer.Key(frame.FrameIdx - 1))
-	if err != nil {
+
+	var checkPlayer = make(map[string]types.PlayerPosition)
+	prevFrame, err := w.stateBuffer.Get(pringleBuffer.Key(frame.FrameIdx - 1))
+	if errors.Is(err, pringleBuffer.PringleBufferError{}) {
 		w.Logger.Warn("No previous frame to compare")
 		return
 	}
+	if err != nil {
+		w.Logger.Error("Failed to get previous frame", "error", err)
+		return
+	}
+
 	compareMap := make(map[string][]types.PlayerPosition)
 	for _, player := range prevFrame.Players {
 		_, ok := compareMap[player.PlayerId]
 		if ok {
+			player.FrameIdx = prevFrame.FrameIdx
 			compareMap[player.PlayerId][0] = player
 		}
 		if !ok {
 			compareMap[player.PlayerId] = make([]types.PlayerPosition, 2)
+			player.FrameIdx = prevFrame.FrameIdx
 			compareMap[player.PlayerId][0] = player
 		}
 	}
 	for _, player := range frame.Players {
 		_, ok := compareMap[player.PlayerId]
 		if ok {
+			player.FrameIdx = frame.FrameIdx
 			compareMap[player.PlayerId][1] = player
 		}
 		if !ok {
 			compareMap[player.PlayerId] = make([]types.PlayerPosition, 2)
+			player.FrameIdx = frame.FrameIdx
 			compareMap[player.PlayerId][1] = player
 		}
 	}
 
+	c := 0
 	for playerId, values := range compareMap {
+
 		xDiff := math.Abs(values[0].Position.X - values[1].Position.X)
 		yDiff := math.Abs(values[0].Position.Y - values[1].Position.Y)
 		if xDiff > JumpThreshold || yDiff > JumpThreshold {
 			w.Logger.Info("Jump detected", "player_id", playerId, "x_diff", xDiff, "y_diff", yDiff, "frame", frame.FrameIdx)
+			checkPlayer[fmt.Sprintf("%s:%d:0", playerId, frame.FrameIdx)] = values[0]
+			checkPlayer[fmt.Sprintf("%s:%d:1", playerId, frame.FrameIdx)] = values[1]
 		}
+		if c == len(compareMap)-1 && frame.FrameIdx%5 == 0 {
+			if len(checkPlayer) > 1 {
+				w.swap(checkPlayer)
+			}
+			checkPlayer = make(map[string]types.PlayerPosition)
+		}
+		c++
 	}
 }
 
@@ -153,4 +177,7 @@ func (w *Worker) DetectHoles(frame types.SmallFrame) {
 		// Use messageLength in the error log
 		w.Logger.Error("Failed to send message", "length", messageLength, "error", err)
 	}
+}
+func (w *Worker) swap(p map[string]types.PlayerPosition) {
+	w.Logger.Error("Swapping players", "players", p)
 }
