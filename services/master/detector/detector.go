@@ -65,7 +65,7 @@ const (
 func (w *Worker) detect(frame types.SmallFrame) {
 
 	var checkPlayer = make(map[string]types.PlayerPosition)
-	prevFrame, err := w.stateBuffer.Get(pringleBuffer.Key(frame.FrameIdx - 1))
+	prevFrame, err := w.StateBuffer.Get(pringleBuffer.Key(frame.FrameIdx - 1))
 	if errors.Is(err, pringleBuffer.PringleBufferError{}) {
 		w.Logger.Warn("No previous frame to compare")
 		return
