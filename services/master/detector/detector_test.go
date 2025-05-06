@@ -11,7 +11,7 @@ import (
 )
 
 func TestDetectHoles(t *testing.T) {
-	// Step 1: Create a new detector Worker
+	//Create a new detector Worker
 	ctx, _ := zmq.NewContext()
 	w := detector.New(ctx)
 	w.HoleFlags = make(map[string]bool)
@@ -20,7 +20,7 @@ func TestDetectHoles(t *testing.T) {
 	// Initialize the stateBuffer
 	w.StateBuffer = pringleBuffer.New[types.SmallFrame](10)
 
-	// Step 2: Add mock frames to stateBuffer
+	//Add mock frames to stateBuffer
 	previousFrame := types.SmallFrame{
 		FrameIdx: 1,
 		Players: []types.PlayerPosition{
@@ -49,10 +49,10 @@ func TestDetectHoles(t *testing.T) {
 	// Insert the previous frame into the buffer
 	w.StateBuffer.Insert(previousFrame)
 
-	// Step 3: Call detectHoles with the current frame
+	//Call detectHoles with the current frame
 	w.DetectHoles(currentFrame)
 
-	// Step 4: Validate the outcome
+	//Validate the outcome
 	// Assert that Player2 is marked as missing in holeFlags
 	assert.True(t, w.HoleFlags["Player2"], "Player2 should be marked as missing in holeFlags")
 
