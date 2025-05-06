@@ -42,16 +42,16 @@ def train_epoch(epoch: int,
 
         output, delta = model(batch_x)
 
-        low_movement_penalty = torch.clamp(MIN_MOVEMENT_THRESHOLD - delta.abs(), min=0.0)
+        low_movement_penalty = torch.clamp(MIN_MOVEMENT_THRESHOLD - delta.abs(), min=0.0).mean()
 
         prev_delta = batch_x[:, -1, 0: 2] - batch_x[:, -2, 0: 2]
         cos_similarity = torch.nn.functional.cosine_similarity(prev_delta, delta)
         angle_penalty = 1 - cos_similarity.mean()
 
-        loss = loss_function(output, batch_y)
-        running_loss += (loss.item() * LOSS_SCALE +
-                         low_movement_penalty * LOSS_MOVEMENT_SCALE +
-                         angle_penalty * LOSS_ANGLE_SCALE)
+        loss = torch.nn.functional.mse_loss(output, batch_y)
+        #loss = loss + low_movement_penalty * LOSS_MOVEMENT_SCALE# + angle_penalty * LOSS_ANGLE_SCALE
+
+        running_loss += loss.item()
         total += 1
         optimizer.zero_grad()
         loss.backward()

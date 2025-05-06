@@ -89,7 +89,7 @@ def train_model(
     model = PlayerPredictor(device, n_nearest, hidden_size, stack_size)
     model.to(device)
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    epochs = 20
+    epochs = 50
     loss_function = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
@@ -154,7 +154,6 @@ def load_dataset(n_nearest: int, sequence_length: int, batch_size: int):
 
 def parameters() -> Generator[tuple[int, int, int, int, int, float], None, None]:
     """n_nearest, stack_size, hidden_size, sequence_length, batch_size, learning_rate"""
-
     for n_nearest in hyper_parameters['n_nearest_players']:
         for sequence_length in hyper_parameters['sequence_length']:
             for batch_size in hyper_parameters['batch_size']:
