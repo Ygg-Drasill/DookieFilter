@@ -6,6 +6,7 @@ import pandas as pd
 import torch
 from torch.utils.data import Dataset
 
+
 class MatchDataset(Dataset):
     data_path: str
     player_numbers: list[str]
@@ -16,7 +17,12 @@ class MatchDataset(Dataset):
     field_height: int = 68
     field_y_offset = 68 / 2
 
-    def __init__(self, data_path: str, device: torch.device, sequence_length: int, n_nearest_players=3):
+    def __init__(
+            self,
+            data_path: str,
+            device: torch.device,
+            sequence_length: int,
+            n_nearest_players=3):
         if not os.path.exists(data_path) or os.path.isdir(data_path):
             return
         self.device = device
@@ -50,8 +56,10 @@ class MatchDataset(Dataset):
         for sequenced_idx in range(player_frame_index-self.sequence_length, player_frame_index):
             ball, player, home, away = self.get_player_ball__n_nearest(sequenced_idx, player_number, self.n_nearest_players)
             sample = [player, ball]
-            for k in dict.keys(home): sample.append(home[k])
-            for k in dict.keys(away): sample.append(away[k])
+            for k in dict.keys(home):
+                sample.append(home[k])
+            for k in dict.keys(away):
+                sample.append(away[k])
             for i in range(len(sample)):
                 sample[i] = [self.normalize_x(sample[i][0]),
                              self.normalize_y(sample[i][1])]
@@ -60,17 +68,23 @@ class MatchDataset(Dataset):
         next_frame = self.match_dataframe.loc[player_frame_index + 1]
         player_next = np.array([self.normalize_x(next_frame[player_number + "_x"]),
                                 self.normalize_y(next_frame[player_number + "_y"])])
-        return (torch.from_numpy(np.array(sequence).reshape(self.sequence_length,self.n_features,2)).to(torch.float32),
+        return (torch.from_numpy(np.array(sequence).reshape(self.sequence_length, self.n_features, 2)).to(torch.float32),
                 torch.from_numpy(np.array(player_next)).to(torch.float32))
 
     def normalize_x(self, x):
         return (x + self.field_x_offset) / self.field_width
+
     def normalize_y(self, y):
         return (y + self.field_y_offset) / self.field_height
 
     def get_player_ball__n_nearest(self, idx: int, player_number: str, n: int):
+        """
+        Find nearest home- and away players around specified player,
+        and return ball, player and two lists with n nearest players
+        """
         frame_coords = self.collect_coords_at(idx)
-        if player_number not in dict.keys(frame_coords): return []
+        if player_number not in dict.keys(frame_coords):
+            return []
 
         ball_coords = frame_coords.pop("ball")
         frame_coords_keys = dict.keys(frame_coords.copy())
@@ -96,7 +110,11 @@ class MatchDataset(Dataset):
             away[key] = frame_coords[key]
         return ball_coords, player, home, away
 
-    def collect_coords_at(self, idx: int):
+    def collect_coords_at(self, idx: int) -> dict:
+        """
+        Return a row at index (dict) containing the ball position and
+        all player positions, where all coordinates collected into 2D vectors
+        """
         frame = self.match_dataframe.loc[idx]
         ball = [frame["ball_x"], frame["ball_y"]]
         frame_coords = {"ball": ball}
