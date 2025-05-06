@@ -1,82 +1,70 @@
 package collector
 
 import (
-	"encoding/json"
-	"github.com/Ygg-Drasill/DookieFilter/common/socket/endpoints"
-	"github.com/Ygg-Drasill/DookieFilter/common/testutils"
-	zmq "github.com/pebbe/zmq4"
-	"github.com/stretchr/testify/assert"
-	"log/slog"
-	"sync"
-	"testing"
+    "encoding/json"
+    "github.com/Ygg-Drasill/DookieFilter/common/socket/endpoints"
+    "github.com/Ygg-Drasill/DookieFilter/common/testutils"
+    "github.com/Ygg-Drasill/DookieFilter/common/types"
+    zmq "github.com/pebbe/zmq4"
+    "github.com/stretchr/testify/assert"
+    "strings"
+    "sync"
+    "testing"
 )
 
 func TestCollector(t *testing.T) {
+    workerWg := &sync.WaitGroup{}
+    ctx, err := zmq.NewContext()
+    if err != nil {
+        panic(err)
+    }
+    worker := New(ctx)
 
-	wg := &sync.WaitGroup{}
-	ctx, err := zmq.NewContext()
-	ctx.SetIoThreads(8)
-	if err != nil {
-		panic(err)
-	}
-	worker := New(ctx)
-	wg.Add(1)
+    socketCollector, err := ctx.NewSocket(zmq.PUSH)
+    assert.NoError(t, err)
+    socketStore, err := ctx.NewSocket(zmq.PULL)
+    assert.NoError(t, err)
+    socketDetector, err := ctx.NewSocket(zmq.PULL)
+    assert.NoError(t, err)
 
-	socketCollector, err := zmq.NewSocket(zmq.PUSH)
-	if err != nil {
-		panic(err)
-	}
-	socketStore, err := zmq.NewSocket(zmq.PULL)
-	if err != nil {
-		panic(err)
-	}
-	socketDetector, err := zmq.NewSocket(zmq.PULL)
-	if err != nil {
-		panic(err)
-	}
+    err = socketStore.Bind(endpoints.InProcessEndpoint(endpoints.STORAGE))
+    assert.NoError(t, err)
+    err = socketDetector.Bind(endpoints.InProcessEndpoint(endpoints.DETECTOR))
+    assert.NoError(t, err)
+    err = socketCollector.Connect(endpoints.InProcessEndpoint(endpoints.COLLECTOR))
+    assert.NoError(t, err)
 
-	err = socketStore.Bind(endpoints.InProcessEndpoint(endpoints.STORAGE))
-	assert.NoError(t, err)
-	err = socketDetector.Bind(endpoints.InProcessEndpoint(endpoints.DETECTOR))
-	assert.NoError(t, err)
+    workerWg.Add(1)
+    go worker.Run(workerWg)
 
-	go worker.Run(wg)
+    playerCount := 11
+    frame := testutils.RandomFrame(playerCount, playerCount)
+    framePacket, err := json.Marshal(frame)
+    if err != nil {
+        panic(err)
+    }
+    n, err := socketCollector.SendMessage("frame", framePacket)
+    assert.NoError(t, err)
+    assert.Greater(t, n, 0)
 
-	err = socketCollector.Connect(endpoints.InProcessEndpoint(endpoints.COLLECTOR))
-	assert.NoError(t, err)
+    var storeMessage []string
+    var detectorMessage []string
 
-	frame := testutils.RandomFrame(11, 11)
-	_, err = json.Marshal(frame)
-	if err != nil {
-		panic(err)
-	}
-	go func() {
-		n, err := socketCollector.SendMessage("frame")
-		assert.Greater(t, n, 0)
-		if err != nil {
-			panic(err)
-		}
-	}()
+    storeMessage, err = socketStore.RecvMessage(0)
+    assert.NoError(t, err)
+    detectorMessage, err = socketDetector.RecvMessage(0)
+    assert.NoError(t, err)
 
-	//Wrapping this part of the test in a separate goroutine
-	//allows the zmq sockets to run in parallel.
-	//Otherwise, socketStore.RecvMessage halts execution for the sockets
-	//inside the worker, which would not be able to receive messages.
-	//(Running it in a t.Run() with t.Parallel() did not work...)
-	testWg := &sync.WaitGroup{}
-	var storeMessage []string
-	var detectorMessage []string
-	testWg.Add(1)
-	go func() {
-		storeMessage, err = socketStore.RecvMessage(0)
-		assert.NoError(t, err)
-		slog.Info("hello")
+    assert.NotEmpty(t, storeMessage)
+    assert.NotEmpty(t, detectorMessage)
 
-		detectorMessage, err = socketDetector.RecvMessage(0)
-		assert.NoError(t, err)
-		testWg.Done()
-	}()
-	testWg.Wait()
-	assert.NotEmpty(t, storeMessage)
-	assert.NotEmpty(t, detectorMessage)
+    storeFrame := types.DeserializeFrame(strings.Join(storeMessage, ""))
+    detectorFrame := types.DeserializeFrame(strings.Join(detectorMessage, ""))
+
+    assert.Len(t, storeFrame.Players, playerCount*2)
+    assert.Len(t, detectorFrame.Players, playerCount*2)
+
+    assert.NoError(t, socketCollector.Close())
+    assert.NoError(t, socketStore.Close())
+    assert.NoError(t, socketDetector.Close())
 }

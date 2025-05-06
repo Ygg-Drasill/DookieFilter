@@ -1,7 +1,6 @@
 package collector
 
 import (
-	"fmt"
 	"github.com/Ygg-Drasill/DookieFilter/services/master/worker"
 	zmq "github.com/pebbe/zmq4"
 	"sync"
@@ -34,7 +33,6 @@ func (w *Worker) Run(wg *sync.WaitGroup) {
 	}
 
 	for {
-		fmt.Println("ready")
 		err := w.listen()
 		if err != nil {
 			w.Logger.Error(err.Error())
