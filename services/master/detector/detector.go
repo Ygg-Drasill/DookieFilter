@@ -114,8 +114,7 @@ func (w *Worker) decide(p map[string]types.PlayerPosition) {
 	case 2: // one player
 		w.jump(p)
 	default:
-		parity := x%2 == 0
-		w.swap(parity, p)
+		w.swap(x%2 == 0, p)
 	}
 }
 

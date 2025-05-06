@@ -22,7 +22,7 @@ func getMockWorker() *MockWorker {
 	}
 }
 
-func TestWorkerSwap(t *testing.T) {
+func TestSwap(t *testing.T) {
 	testCases := []struct {
 		name       string
 		p          map[string]types.PlayerPosition
@@ -63,8 +63,8 @@ func TestWorkerSwap(t *testing.T) {
 				"player2:11:1": {PlayerId: "player2", FrameIdx: 0, Position: types.Position{X: 0, Y: 0}},
 			},
 			expectedXY: map[string]types.Position{
-				"player1:11:1": {X: 0.0, Y: 0.0},
-				"player2:11:1": {X: 5.05, Y: 6.04},
+				"player1:11:1": {X: 0.0, Y: 0.0},   // Hole
+				"player2:11:1": {X: 5.05, Y: 6.04}, // Swap
 			},
 		},
 		{
@@ -76,8 +76,8 @@ func TestWorkerSwap(t *testing.T) {
 				"player2:11:1": {PlayerId: "player2", FrameIdx: 0, Position: types.Position{X: 8.0, Y: 4.0}},
 			},
 			expectedXY: map[string]types.Position{
-				"player1:11:1": {X: 6.05, Y: 6.04},
-				"player2:11:1": {X: 8.0, Y: 4.0},
+				"player1:11:1": {X: 6.05, Y: 6.04}, // Jump
+				"player2:11:1": {X: 8.0, Y: 4.0},   // Jump
 			},
 		},
 		{
@@ -93,10 +93,45 @@ func TestWorkerSwap(t *testing.T) {
 				"player4:11:1": {PlayerId: "player4", FrameIdx: 0, Position: types.Position{X: 3.02, Y: 4.04}},
 			},
 			expectedXY: map[string]types.Position{
-				"player1:11:1": {X: 3.02, Y: 4.04},
-				"player2:11:1": {X: 2.05, Y: 6.94},
-				"player3:11:1": {X: 5.02, Y: -3.04},
-				"player4:11:1": {X: 5.05, Y: 6.04},
+				"player1:11:1": {X: 3.02, Y: 4.04},  // Swap p1-p4
+				"player2:11:1": {X: 2.05, Y: 6.94},  // Swap p2-p3
+				"player3:11:1": {X: 5.02, Y: -3.04}, // Swap p3-p2
+				"player4:11:1": {X: 5.05, Y: 6.04},  // Swap p4-p1
+			},
+		},
+		{
+			name: "4 players, with 2 swaps and 2 jumps",
+			p: map[string]types.PlayerPosition{
+				"player1:10:0": {PlayerId: "player1", FrameIdx: 10, Position: types.Position{X: 3.0, Y: 4.0}},
+				"player1:11:1": {PlayerId: "player1", FrameIdx: 11, Position: types.Position{X: -5.05, Y: 6.04}},
+				"player2:10:0": {PlayerId: "player2", FrameIdx: 10, Position: types.Position{X: 2.0, Y: 7.0}},
+				"player2:11:1": {PlayerId: "player2", FrameIdx: 11, Position: types.Position{X: 5.02, Y: -3.04}},
+				"player3:10:0": {PlayerId: "player3", FrameIdx: 10, Position: types.Position{X: 5.0, Y: -3.0}},
+				"player3:11:1": {PlayerId: "player3", FrameIdx: 11, Position: types.Position{X: 2.05, Y: 6.94}},
+				"player4:10:0": {PlayerId: "player4", FrameIdx: 10, Position: types.Position{X: 5.0, Y: -6.0}},
+				"player4:11:1": {PlayerId: "player4", FrameIdx: 0, Position: types.Position{X: 3.02, Y: -4.04}},
+			},
+			expectedXY: map[string]types.Position{
+				"player1:11:1": {X: -5.05, Y: 6.04}, // Jump
+				"player2:11:1": {X: 2.05, Y: 6.94},  // Swap
+				"player3:11:1": {X: 5.02, Y: -3.04}, // Swap
+				"player4:11:1": {X: 3.02, Y: -4.04}, // Jump
+			},
+		},
+		{
+			name: "3 players, with 2 swaps and 1 jump",
+			p: map[string]types.PlayerPosition{
+				"player1:10:0": {PlayerId: "player1", FrameIdx: 10, Position: types.Position{X: 3.0, Y: 4.0}},
+				"player1:11:1": {PlayerId: "player1", FrameIdx: 11, Position: types.Position{X: -5.05, Y: 6.04}},
+				"player2:10:0": {PlayerId: "player2", FrameIdx: 10, Position: types.Position{X: 2.0, Y: 7.0}},
+				"player2:11:1": {PlayerId: "player2", FrameIdx: 11, Position: types.Position{X: 5.02, Y: -3.04}},
+				"player3:10:0": {PlayerId: "player3", FrameIdx: 10, Position: types.Position{X: 5.0, Y: -3.0}},
+				"player3:11:1": {PlayerId: "player3", FrameIdx: 11, Position: types.Position{X: 2.05, Y: 6.94}},
+			},
+			expectedXY: map[string]types.Position{
+				"player1:11:1": {X: -5.05, Y: 6.04}, // Jump
+				"player2:11:1": {X: 2.05, Y: 6.94},  // Swap
+				"player3:11:1": {X: 5.02, Y: -3.04}, // Swap
 			},
 		},
 	}
@@ -104,7 +139,7 @@ func TestWorkerSwap(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 
 			mockWorker := getMockWorker()
-			mockWorker.swap(true, tc.p)
+			mockWorker.swap(len(tc.p)%2 == 0, tc.p)
 
 			for key, expectedPos := range tc.expectedXY {
 				if player, exists := tc.p[key]; exists {
