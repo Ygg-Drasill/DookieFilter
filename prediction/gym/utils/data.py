@@ -3,13 +3,13 @@ import heapq
 import numpy as np
 from numpy import ndarray
 
-field_width = 105
-field_height = 68
-field_x_offset = field_width / 2
-field_y_offset = field_height / 2
+FIELD_WIDTH = 105
+FIELD_HEIGHT = 68
+FIELD_X_OFFSET = FIELD_WIDTH / 2
+field_y_offset = FIELD_HEIGHT / 2
 
-def normalize_x(x): return (x + field_x_offset) / field_width
-def normalize_y(y): return (y + field_y_offset) / field_height
+def normalize_x(x): return (x + FIELD_X_OFFSET) / FIELD_WIDTH
+def normalize_y(y): return (y + field_y_offset) / FIELD_HEIGHT
 
 
 def get_features(
