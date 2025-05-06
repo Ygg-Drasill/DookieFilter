@@ -17,7 +17,7 @@ class PlayerPredictor(nn.Module):
         self.n_stack = n_stack
         # input size is n_nearest_players *2 (home and away) + target player and ball
         self.input_size = ((2*n_nearest_players) + 2) * 2
-        self.lstm = nn.LSTM(self.input_size, n_hidden, n_stack, batch_first=True, )
+        self.lstm = nn.LSTM(self.input_size, n_hidden, n_stack, batch_first=True, dropout=0.2)
         self.linear = nn.Linear(n_hidden, 2)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
