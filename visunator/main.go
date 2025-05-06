@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	slog.SetDefault(logger.New("visunator", "DEBUG"))
+    slog.SetDefault(logger.New("visunator", "DEBUG"))
 }
 
 const dataPath = "./raw.jsonl" //TODO: Change me
