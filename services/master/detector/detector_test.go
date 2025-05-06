@@ -137,7 +137,7 @@ func TestJump(t *testing.T) {
 			},
 			expected: true},
 		{
-			name: "Player Duplicate Coords Not Detected",
+			name: "No Player Duplicate Coords Detected",
 			p: map[string]types.PlayerPosition{
 				"player1:10:0": {PlayerId: "player1", FrameIdx: 10, Position: types.Position{X: 3.0, Y: 4.0}},
 				"player1:11:1": {PlayerId: "player1", FrameIdx: 11, Position: types.Position{X: 5.0, Y: 6.0}},
