@@ -16,7 +16,7 @@ type Worker struct {
 	worker.BaseWorker
 
 	socketListen *zmq.Socket
-	socketSend   *zmq.Socket
+	SocketSend   *zmq.Socket
 
 	StateBuffer *pringleBuffer.PringleBuffer[types.SmallFrame]
 	HoleFlags   map[string]bool
@@ -127,12 +127,12 @@ func (w *Worker) DetectHoles(frame types.SmallFrame) {
 			}
 		}
 	}
-	w.socketSend, err = w.SocketContext.NewSocket(zmq.PUSH)
+	w.SocketSend, err = w.SocketContext.NewSocket(zmq.PUSH)
 	if err != nil {
 		w.Logger.Error("Failed to create socket", "error", err)
 		return
 	}
-	err = w.socketSend.Connect(endpoints.InProcessEndpoint(endpoints.COLLECTOR))
+	err = w.SocketSend.Connect(endpoints.InProcessEndpoint(endpoints.COLLECTOR))
 	if err != nil {
 		w.Logger.Error("Failed to connect socket", "error", err)
 		return
@@ -148,7 +148,7 @@ func (w *Worker) DetectHoles(frame types.SmallFrame) {
 
 	// Declare messageLength first, then assign to existing err
 	var messageLength int
-	messageLength, err = w.socketSend.SendMessage("frame", message)
+	messageLength, err = w.SocketSend.SendMessage("frame", message)
 	if err != nil {
 		// Use messageLength in the error log
 		w.Logger.Error("Failed to send message", "length", messageLength, "error", err)
