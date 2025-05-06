@@ -109,6 +109,7 @@ func DeserializeFrame(data string) SmallFrame {
 			y, _ := strconv.ParseFloat(playerData[2], 64)
 			player := PlayerPosition{
 				PlayerId: playerData[0],
+				FrameIdx: frameIdx,
 				Position: Position{
 					X: x,
 					Y: y,
