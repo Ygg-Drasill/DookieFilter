@@ -170,6 +170,9 @@ func (w *Worker) swap(p map[string]types.PlayerPosition) (swapped map[string]boo
 		for _, curr := range cf {
 			if prev.player.PlayerId != curr.player.PlayerId && positionProximity(prev, curr) {
 				g := getPair(cf, prev)
+				if swappers[curr.key] == true || swappers[g.key] == true {
+					continue
+				}
 				swapPlayers(p, curr, g)
 				swappers[curr.key] = true
 				swappers[g.key] = true
