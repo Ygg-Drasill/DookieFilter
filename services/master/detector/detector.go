@@ -129,24 +129,23 @@ type swapPlayer struct {
 	player types.PlayerPosition
 }
 
-func (w *Worker) swap(p map[string]types.PlayerPosition) (swapped, jumped map[string]types.PlayerPosition) {
+func (w *Worker) swap(p map[string]types.PlayerPosition) (swapped map[string]bool) {
 	var (
 		cf,
 		pf []swapPlayer
-		s = make(map[string]types.PlayerPosition)
-		j = make(map[string]types.PlayerPosition)
+		swappers = make(map[string]bool)
 	)
 
 	for k, player := range p {
 		if player.FrameIdx == 0 {
 			w.Logger.Debug("hole", "key", k, "player", player)
 			q := strings.Split(k, ":")
-			s, err := strconv.Atoi(q[1])
+			f, err := strconv.Atoi(q[1])
 			if err != nil {
 				w.Logger.Error("Failed to parse frame index", "error", err)
 				continue
 			}
-			player.FrameIdx = s
+			player.FrameIdx = f
 			player.PlayerId = q[0]
 			p[k] = player
 		}
@@ -160,27 +159,26 @@ func (w *Worker) swap(p map[string]types.PlayerPosition) (swapped, jumped map[st
 
 	if len(pf) != len(cf) {
 		w.Logger.Error("swap", "error", "Mismatched frame data", "pf", pf, "cf", cf)
-		return nil, nil
+		return swappers
 	}
 
+	// load swappers
+	for _, s := range cf {
+		swappers[s.key] = false
+	}
 	for _, prev := range pf {
 		for _, curr := range cf {
 			if prev.player.PlayerId != curr.player.PlayerId && positionProximity(prev, curr) {
 				g := getPair(cf, prev)
 				swapPlayers(p, curr, g)
-				s[curr.key] = curr.player
-				s[g.key] = g.player
+				swappers[curr.key] = true
+				swappers[g.key] = true
 				break
 			}
 		}
 	}
-	for _, curr := range cf {
-		if _, e := s[curr.key]; !e {
-			j[curr.key] = curr.player
-		}
-	}
 
-	return s, j
+	return swappers
 }
 
 func getPair(players []swapPlayer, m swapPlayer) swapPlayer {
@@ -211,7 +209,6 @@ func positionProximity(p1, p2 swapPlayer) bool {
 	distance := math.Sqrt(dx*dx + dy*dy)
 
 	normalized := (distance / fieldSize) * 100
-	fmt.Println("Normalized distance (%)", normalized)
 
 	return normalized < maxMovePercent
 }

@@ -155,9 +155,19 @@ func TestSwap(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 
 			mockWorker := getMockWorker()
-			s, j := mockWorker.swap(tc.p)
-			assert.Equal(t, tc.expectedSwap, len(s))
-			assert.Equal(t, tc.expectedJump, len(j))
+			swappers := mockWorker.swap(tc.p)
+			var swapCount, jumpCount int
+			for _, swapped := range swappers {
+				if swapped {
+					swapCount++
+				} else {
+					jumpCount++
+				}
+			}
+
+			assert.Equal(t, tc.expectedSwap, swapCount, "Expected %d swaps, got %d", tc.expectedSwap, swapCount)
+			assert.Equal(t, tc.expectedJump, jumpCount, "Expected %d jumps, got %d", tc.expectedJump, jumpCount)
+
 			for key, expectedPos := range tc.expectedXY {
 				if player, exists := tc.p[key]; exists {
 					assert.Equal(t, expectedPos, player.Position)
