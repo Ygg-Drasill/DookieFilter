@@ -27,6 +27,8 @@ func TestSwap(t *testing.T) {
 		name       string
 		p          map[string]types.PlayerPosition
 		expectedXY map[string]types.Position
+		expectedSwap,
+		expectedJump int
 	}{
 		{
 			name: "Successful Swap",
@@ -40,6 +42,8 @@ func TestSwap(t *testing.T) {
 				"player1:11:1": {X: 3.02, Y: 4.04},
 				"player2:11:1": {X: 5.05, Y: 6.04},
 			},
+			expectedSwap: 2,
+			expectedJump: 0,
 		},
 		{
 			name: "Successful Swap with missing previous frame",
@@ -53,6 +57,8 @@ func TestSwap(t *testing.T) {
 				"player1:11:1": {X: 3.02, Y: 4.04},
 				"player2:11:1": {X: 5.05, Y: 6.04},
 			},
+			expectedSwap: 2,
+			expectedJump: 0,
 		},
 		{
 			name: "Successful Swap with missing current frame",
@@ -66,6 +72,8 @@ func TestSwap(t *testing.T) {
 				"player1:11:1": {X: 0.0, Y: 0.0},   // Hole
 				"player2:11:1": {X: 5.05, Y: 6.04}, // Swap
 			},
+			expectedSwap: 2,
+			expectedJump: 0,
 		},
 		{
 			name: "Unsuccessful Swap no match found",
@@ -79,6 +87,8 @@ func TestSwap(t *testing.T) {
 				"player1:11:1": {X: 6.05, Y: 6.04}, // Jump
 				"player2:11:1": {X: 8.0, Y: 4.0},   // Jump
 			},
+			expectedSwap: 0,
+			expectedJump: 2,
 		},
 		{
 			name: "Successful 4 player Swap",
@@ -98,6 +108,8 @@ func TestSwap(t *testing.T) {
 				"player3:11:1": {X: 5.02, Y: -3.04}, // Swap p3-p2
 				"player4:11:1": {X: 5.05, Y: 6.04},  // Swap p4-p1
 			},
+			expectedSwap: 4,
+			expectedJump: 0,
 		},
 		{
 			name: "4 players, with 2 swaps and 2 jumps",
@@ -117,6 +129,8 @@ func TestSwap(t *testing.T) {
 				"player3:11:1": {X: 5.02, Y: -3.04}, // Swap
 				"player4:11:1": {X: 3.02, Y: -4.04}, // Jump
 			},
+			expectedSwap: 2,
+			expectedJump: 2,
 		},
 		{
 			name: "3 players, with 2 swaps and 1 jump",
@@ -133,14 +147,17 @@ func TestSwap(t *testing.T) {
 				"player2:11:1": {X: 2.05, Y: 6.94},  // Swap
 				"player3:11:1": {X: 5.02, Y: -3.04}, // Swap
 			},
+			expectedSwap: 2,
+			expectedJump: 1,
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 
 			mockWorker := getMockWorker()
-			mockWorker.swap(len(tc.p)%2 == 0, tc.p)
-
+			s, j := mockWorker.swap(tc.p)
+			assert.Equal(t, tc.expectedSwap, len(s))
+			assert.Equal(t, tc.expectedJump, len(j))
 			for key, expectedPos := range tc.expectedXY {
 				if player, exists := tc.p[key]; exists {
 					assert.Equal(t, expectedPos, player.Position)

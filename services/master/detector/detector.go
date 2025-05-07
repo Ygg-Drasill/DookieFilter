@@ -120,7 +120,7 @@ func (w *Worker) decide(p map[string]types.PlayerPosition) {
 	case 2: // one player
 		w.jump(p)
 	default:
-		w.swap(x%2 == 0, p)
+		w.swap(p)
 	}
 }
 
@@ -129,11 +129,14 @@ type swapPlayer struct {
 	player types.PlayerPosition
 }
 
-func (w *Worker) swap(parity bool, p map[string]types.PlayerPosition) {
+func (w *Worker) swap(p map[string]types.PlayerPosition) (swapped, jumped map[string]types.PlayerPosition) {
 	var (
 		cf,
 		pf []swapPlayer
+		s = make(map[string]types.PlayerPosition)
+		j = make(map[string]types.PlayerPosition)
 	)
+
 	for k, player := range p {
 		if player.FrameIdx == 0 {
 			w.Logger.Debug("hole", "key", k, "player", player)
@@ -157,16 +160,27 @@ func (w *Worker) swap(parity bool, p map[string]types.PlayerPosition) {
 
 	if len(pf) != len(cf) {
 		w.Logger.Error("swap", "error", "Mismatched frame data", "pf", pf, "cf", cf)
-		return
+		return nil, nil
 	}
 
 	for _, prev := range pf {
 		for _, curr := range cf {
 			if prev.player.PlayerId != curr.player.PlayerId && positionProximity(prev, curr) {
-				swapPlayers(p, curr, getPair(cf, prev))
+				g := getPair(cf, prev)
+				swapPlayers(p, curr, g)
+				s[curr.key] = curr.player
+				s[g.key] = g.player
+				break
 			}
 		}
 	}
+	for _, curr := range cf {
+		if _, e := s[curr.key]; !e {
+			j[curr.key] = curr.player
+		}
+	}
+
+	return s, j
 }
 
 func getPair(players []swapPlayer, m swapPlayer) swapPlayer {
