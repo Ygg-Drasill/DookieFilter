@@ -6,15 +6,11 @@ dt["detect"];
 
     dt -->|x or y diff in coords| dc;
 
+    o["one player"]
+    e["multiple players"]
+    dc --> o & e;
 
-    p("determine player count with anomaly");
-    dc --> p;
-    o["odd player count"]
-    e["even player count"]
-    p --> e & o;
-
-    o -->|Players with no match| jump;
-    o -->|If 2 or more players match| swap;
+    o --> jump;
     e --> swap;
 
 
