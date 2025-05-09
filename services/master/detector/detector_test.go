@@ -28,18 +28,19 @@ func TestDetectHole(t *testing.T) {
 
     //Generate random frame for testing
     frame := testutils.RandomFrame(2, 1)
-    socketInput.Send(types.SerializeFrame(types.SmallFromBigFrame(frame)), 0)
+    socketInput.SendMessage("frame", types.SerializeFrame(types.SmallFromBigFrame(frame)), 0)
 
     //Remove one player from the home list
     next := testutils.RandomNextFrame(frame)
     next.HomePlayers = next.HomePlayers[0: len(next.HomePlayers)-1]
-    socketInput.Send(types.SerializeFrame(types.SmallFromBigFrame(next)), 0)
+    socketInput.SendMessage("frame", types.SerializeFrame(types.SmallFromBigFrame(next)), 0)
 
 
     doneChan := make(chan bool)
     go func() {
-        _, n := socketImputation.RecvMessage(0)
-        assert.Greater(t, n, 0)
+        message, err := socketImputation.RecvMessage(0)
+        assert.NoError(t, err)
+        assert.Greater(t, len(message), 0)
         doneChan <- true
     }()
 
@@ -50,5 +51,5 @@ func TestDetectHole(t *testing.T) {
     }()
 
     result := <- doneChan
-    assert.True(t, result, "result should be true")
+    assert.True(t, result, "expected messeage from detector worker within 1 second")
 }
