@@ -57,7 +57,9 @@ func (w *Worker) Run(wg *sync.WaitGroup) {
 const JumpThreshold = 5 //TODO: change me
 
 func (w *Worker) detect(frame types.SmallFrame) {
-	var checkPlayer = make(map[string]types.PlayerPosition)
+	if len(frame.Players) != 22 {
+		return
+	}
 	prevFrame, err := w.stateBuffer.Get(pringleBuffer.Key(frame.FrameIdx - 1))
 	if errors.Is(err, pringleBuffer.PringleBufferError{}) {
 		w.Logger.Warn("No previous frame to compare")
@@ -94,9 +96,11 @@ func (w *Worker) detect(frame types.SmallFrame) {
 		}
 	}
 
-	c := 0
+	var (
+		count       = 0
+		checkPlayer = make(map[string]types.PlayerPosition)
+	)
 	for playerId, values := range compareMap {
-
 		xDiff := math.Abs(values[0].Position.X - values[1].Position.X)
 		yDiff := math.Abs(values[0].Position.Y - values[1].Position.Y)
 		if xDiff > JumpThreshold || yDiff > JumpThreshold {
@@ -104,24 +108,60 @@ func (w *Worker) detect(frame types.SmallFrame) {
 			checkPlayer[fmt.Sprintf("%s:%d:0", playerId, prevFrame.FrameIdx)] = values[0]
 			checkPlayer[fmt.Sprintf("%s:%d:1", playerId, frame.FrameIdx)] = values[1]
 		}
-		if c == len(compareMap)-1 && frame.FrameIdx%5 == 0 {
+		if count == len(compareMap)-1 && frame.FrameIdx%5 == 0 {
 			if len(checkPlayer) > 1 {
-				w.decide(checkPlayer)
+				w.decide(w.swap(checkPlayer), checkPlayer, &frame)
 			}
 		}
-		c++
+		count++
 	}
-
 }
 
-func (w *Worker) decide(p map[string]types.PlayerPosition) {
-	x := len(p)
-	switch x {
-	case 2: // one player
-		w.jump(p)
-	default:
-		w.swap(p)
+func (w *Worker) decide(
+	swappers map[string]bool,
+	p map[string]types.PlayerPosition,
+	frame *types.SmallFrame) *types.SmallFrame {
+
+	for k, v := range swappers {
+		s := strings.Split(k, ":")
+		for i, f := range frame.Players {
+			if f.PlayerId != s[0] {
+				continue
+			}
+			if !v {
+				if w.clearPlayer(frame) {
+					break
+				}
+				frame.Players[i].Position = types.Position{X: 0, Y: 0}
+				break
+			}
+			frame.Players[i].Position = p[k].Position
+			swappers[k] = false
+			w.Logger.Debug("swapped", "key", k, "player", f)
+			break
+		}
 	}
+	for k, v := range swappers {
+		if v {
+			addPlayer(frame, p[k])
+		}
+	}
+	return frame
+}
+
+func (w *Worker) clearPlayer(frame *types.SmallFrame) bool {
+	if q, err := w.stateBuffer.Get(frame.Key() - 1); err == nil {
+		for i, _ := range q.Players {
+			if q.Players[i].Position.X == 0 && q.Players[i].Position.Y == 0 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func addPlayer(frame *types.SmallFrame, player types.PlayerPosition) {
+	frame.Players = append(frame.Players, player)
 }
 
 type swapPlayer struct {
