@@ -1,6 +1,8 @@
 package detector
 
 import (
+	"encoding/json"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -11,6 +13,9 @@ import (
 	zmq "github.com/pebbe/zmq4"
 	"github.com/stretchr/testify/assert"
 )
+
+//Test timeout in seconds
+const timeout = 2
 
 func TestDetectHole(t *testing.T) {
     ctx, err := zmq.NewContext()
@@ -32,21 +37,36 @@ func TestDetectHole(t *testing.T) {
 
     //Remove one player from the home list
     next := testutils.RandomNextFrame(frame)
-    next.HomePlayers = next.HomePlayers[0: len(next.HomePlayers)-1]
+	removeIndex := len(next.HomePlayers) - 1
+	playerNumber := next.HomePlayers[removeIndex].Number
+    next.HomePlayers = next.HomePlayers[0:removeIndex]
     socketInput.SendMessage("frame", types.SerializeFrame(types.SmallFromBigFrame(next)), 0)
 
 
     doneChan := make(chan bool)
     go func() {
-        message, err := socketImputation.RecvMessage(0)
+		topic, err := socketImputation.Recv(zmq.SNDMORE)
+		assert.NoError(t, err)
+		assert.Equal(t, topic, "hole")
+        packet, err := socketImputation.RecvMessage(0)
         assert.NoError(t, err)
+		message := strings.Join(packet, "")
         assert.Greater(t, len(message), 0)
+
+		request := holeMessage{}
+		err = json.Unmarshal([]byte(message), &request)
+		assert.NoError(t, err)
+
+		assert.Equal(t, request.FrameIdx, next.FrameIdx)
+		assert.Equal(t, request.PlayerNumber, playerNumber)
+		assert.Equal(t, request.Home, true)
+
         doneChan <- true
     }()
 
-    //Fail the test after 1 second
+    //Fail the test after timeout
     go func() {
-        time.Sleep(1 * time.Second)
+        time.Sleep(timeout * time.Second)
         doneChan <- false
     }()
 
