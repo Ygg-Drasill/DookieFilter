@@ -144,7 +144,7 @@ func (w *Worker) detectHoles(frame types.SmallFrame) {
 
 	// Declare message first, then assign to existing err
 	var message []byte
-	message, err = json.Marshal(frame)
+	message, err = json.Marshal(frame.FrameIdx) //also need playerId (have to know know if it is home or away players)
 	if err != nil {
 		w.Logger.Error("Failed to marshal frame to JSON", "error", err)
 		return
