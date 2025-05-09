@@ -177,6 +177,15 @@ func (w *Worker) DetectHoles(frame types.SmallFrame) {
 		// Use messageLength in the error log
 		w.Logger.Error("Failed to send message", "length", messageLength, "error", err)
 	}
+
+	// Close the existing socket if it exists
+	if w.SocketSend != nil {
+		err = w.SocketSend.Close()
+		if err != nil {
+			w.Logger.Error("Failed to close existing socket", "error", err)
+			return
+		}
+	}
 }
 func (w *Worker) swap(p map[string]types.PlayerPosition) {
 	w.Logger.Error("Swapping players", "players", p)
