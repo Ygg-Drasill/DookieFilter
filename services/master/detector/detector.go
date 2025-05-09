@@ -138,7 +138,7 @@ func (w *Worker) detectHoles(frame types.SmallFrame) {
     // Check for players who were present before but are missing now
     for playerId := range prevPlayers {
         if !currentPlayers[playerId] {
-            var playerNum int // Placeholder: replace with actual PlayerNumber logic
+            var playerNum string // Placeholder: replace with actual PlayerNumber logic
 
             msgData := holeMessage{
                 FrameIdx:     frame.FrameIdx,
