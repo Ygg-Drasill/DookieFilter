@@ -1,7 +1,7 @@
-package collector
+package detector
 
 type holeMessage struct {
 	FrameIdx     int  `json:"frameIdx"`
 	PlayerNumber int  `json:"playerNumber"`
-	HomePlayer   bool `json:"homePlayer"`
+	Home         bool `json:"home"`
 }
