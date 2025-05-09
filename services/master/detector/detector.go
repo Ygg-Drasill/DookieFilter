@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Ygg-Drasill/DookieFilter/common/pringleBuffer"
-	"github.com/Ygg-Drasill/DookieFilter/common/socket/endpoints"
 	"github.com/Ygg-Drasill/DookieFilter/common/types"
 	"github.com/Ygg-Drasill/DookieFilter/services/master/worker"
 	zmq "github.com/pebbe/zmq4"
@@ -17,12 +16,10 @@ import (
 type Worker struct {
 	worker.BaseWorker
 
-	socketListen *zmq.Socket
-	SocketSend   *zmq.Socket
+	socketListen     *zmq.Socket
+	socketImputation *zmq.Socket
 
 	StateBuffer *pringleBuffer.PringleBuffer[types.SmallFrame]
-	HoleFlags   map[string]bool
-	HoleCount   int
 }
 
 func New(ctx *zmq.Context, options ...func(worker *Worker)) *Worker {
@@ -53,7 +50,7 @@ func (w *Worker) Run(wg *sync.WaitGroup) {
 			frame := types.DeserializeFrame(strings.Join(message, ""))
 			w.StateBuffer.Insert(frame)
 			w.detect(frame)
-			w.DetectHoles(frame)
+			w.detectHoles(frame)
 		}
 	}
 }
@@ -121,7 +118,7 @@ func (w *Worker) detect(frame types.SmallFrame) {
 	}
 }
 
-func (w *Worker) DetectHoles(frame types.SmallFrame) {
+func (w *Worker) detectHoles(frame types.SmallFrame) {
 	prevFrame, err := w.StateBuffer.Get(pringleBuffer.Key(frame.FrameIdx - 1))
 	if err != nil {
 		w.Logger.Warn("No previous frame to compare")
@@ -141,25 +138,8 @@ func (w *Worker) DetectHoles(frame types.SmallFrame) {
 	// Check for players who were present before but are missing now
 	for playerId := range prevPlayers {
 		if !currentPlayers[playerId] {
-			// Player is missing in the current frame
-			if !w.HoleFlags[playerId] {
-				// Player just went missing, set the flag.
-				w.HoleFlags[playerId] = true // Set holeFlag to true when position is missing
-				w.Logger.Info("HoleFlag: Player %s started missing at frame %d", "player_id", playerId, "frame", frame.FrameIdx)
-				w.HoleCount++ // Increment hole count when a player returns
 
-			}
 		}
-	}
-	w.SocketSend, err = w.SocketContext.NewSocket(zmq.PUSH)
-	if err != nil {
-		w.Logger.Error("Failed to create socket", "error", err)
-		return
-	}
-	err = w.SocketSend.Connect(endpoints.InProcessEndpoint(endpoints.COLLECTOR))
-	if err != nil {
-		w.Logger.Error("Failed to connect socket", "error", err)
-		return
 	}
 
 	// Declare message first, then assign to existing err
@@ -172,15 +152,15 @@ func (w *Worker) DetectHoles(frame types.SmallFrame) {
 
 	// Declare messageLength first, then assign to existing err
 	var messageLength int
-	messageLength, err = w.SocketSend.SendMessage("frame", message)
+	messageLength, err = w.socketImputation.SendMessage("frame", message)
 	if err != nil {
 		// Use messageLength in the error log
 		w.Logger.Error("Failed to send message", "length", messageLength, "error", err)
 	}
 
 	// Close the existing socket if it exists
-	if w.SocketSend != nil {
-		err = w.SocketSend.Close()
+	if w.socketImputation != nil {
+		err = w.socketImputation.Close()
 		if err != nil {
 			w.Logger.Error("Failed to close existing socket", "error", err)
 			return

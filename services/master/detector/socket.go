@@ -11,8 +11,17 @@ func (w *Worker) connect() error {
 	if err != nil {
 		return err
 	}
+	w.socketImputation, err = w.SocketContext.NewSocket(zmq.PUSH)
+	if err != nil {
+		return err
+	}
 
 	err = w.socketListen.Bind(endpoints.InProcessEndpoint(endpoints.DETECTOR))
+	if err != nil {
+		return err
+	}
+
+	err = w.socketImputation.Connect("tcp://127.0.0.1:5555")
 	if err != nil {
 		return err
 	}
@@ -23,6 +32,11 @@ func (w *Worker) connect() error {
 func (w *Worker) close() {
 	err := w.socketListen.Close()
 	if err != nil {
-		w.Logger.Warn("failed to close socket (forward)", "error", err.Error())
+		w.Logger.Warn("failed to close socket (listen)", "error", err.Error())
+	}
+
+	err = w.socketImputation.Close()
+	if err != nil {
+		w.Logger.Warn("failed to close socket (imputation)", "error", err.Error())
 	}
 }
