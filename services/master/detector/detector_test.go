@@ -2,10 +2,6 @@ package detector
 
 import (
 	"encoding/json"
-<<<<<<< HEAD
-=======
-	"fmt"
->>>>>>> d95a49f (fix assert expected order)
 	"strings"
 	"sync"
 	"testing"
