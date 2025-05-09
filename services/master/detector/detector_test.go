@@ -2,6 +2,10 @@ package detector
 
 import (
 	"encoding/json"
+<<<<<<< HEAD
+=======
+	"fmt"
+>>>>>>> d95a49f (fix assert expected order)
 	"strings"
 	"sync"
 	"testing"
@@ -47,7 +51,7 @@ func TestDetectHole(t *testing.T) {
     go func() {
 		topic, err := socketImputation.Recv(zmq.SNDMORE)
 		assert.NoError(t, err)
-		assert.Equal(t, topic, "hole")
+		assert.Equal(t, "hole", topic)
         packet, err := socketImputation.RecvMessage(0)
         assert.NoError(t, err)
 		message := strings.Join(packet, "")
@@ -56,10 +60,9 @@ func TestDetectHole(t *testing.T) {
 		request := holeMessage{}
 		err = json.Unmarshal([]byte(message), &request)
 		assert.NoError(t, err)
-
-		assert.Equal(t, request.FrameIdx, next.FrameIdx)
-		assert.Equal(t, request.PlayerNumber, playerNumber)
-		assert.Equal(t, request.Home, true)
+		assert.Equal(t, next.FrameIdx, request.FrameIdx)
+		assert.Equal(t, playerNumber, request.PlayerNumber)
+		assert.Equal(t, true, request.Home)
 
         doneChan <- true
     }()
