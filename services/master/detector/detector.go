@@ -68,9 +68,6 @@ var (
 )
 
 func (w *Worker) detect(frame types.SmallFrame) {
-	if len(frame.Players) != 22 {
-		return
-	}
 	prevFrame, err := w.stateBuffer.Get(pringleBuffer.Key(frame.FrameIdx - 1))
 	if errors.Is(err, pringleBuffer.PringleBufferError{}) {
 		w.Logger.Warn("No previous frame to compare")
