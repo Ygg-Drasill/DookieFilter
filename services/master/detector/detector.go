@@ -111,6 +111,7 @@ func (w *Worker) detect(frame types.SmallFrame) {
 		if count == len(compareMap)-1 && frame.FrameIdx%5 == 0 {
 			if len(checkPlayer) > 1 {
 				w.decide(w.swap(checkPlayer), checkPlayer, &frame)
+				w.stateBuffer.Insert(frame)
 			}
 		}
 		count++
@@ -122,39 +123,44 @@ func (w *Worker) decide(
 	p map[string]types.PlayerPosition,
 	frame *types.SmallFrame) *types.SmallFrame {
 
-	for k, v := range swappers {
-		s := strings.Split(k, ":")
+	for key, swapped := range swappers {
+		playerId := strings.Split(key, ":")[0]
+		found := false
 		for i, f := range frame.Players {
-			if f.PlayerId != s[0] {
+			if f.PlayerId != playerId {
 				continue
 			}
-			if !v {
-				if w.clearPlayer(frame) {
+			found = true
+			if !swapped {
+				q, err := w.stateBuffer.Get(pringleBuffer.Key(f.FrameIdx - 1))
+				if err != nil {
+					w.Logger.Error("Failed to get previous frame", "error", err)
+					continue
+				}
+				if clearPlayer(playerId, q) {
 					break
 				}
 				frame.Players[i].Position = types.Position{X: 0, Y: 0}
 				break
 			}
-			frame.Players[i].Position = p[k].Position
-			swappers[k] = false
-			w.Logger.Debug("swapped", "key", k, "player", f)
+			frame.Players[i].Position = p[key].Position
+			swappers[key] = false
+			w.Logger.Debug("swapped", "key", key, "player", f)
 			break
 		}
-	}
-	for k, v := range swappers {
-		if v {
-			addPlayer(frame, p[k])
+		if swapped && !found {
+			addPlayer(frame, p[key])
 		}
 	}
+
 	return frame
 }
 
-func (w *Worker) clearPlayer(frame *types.SmallFrame) bool {
-	if q, err := w.stateBuffer.Get(frame.Key() - 1); err == nil {
-		for i, _ := range q.Players {
-			if q.Players[i].Position.X == 0 && q.Players[i].Position.Y == 0 {
-				return true
-			}
+func clearPlayer(playerId string, q types.SmallFrame) bool {
+	for _, player := range q.Players {
+		if player.PlayerId == playerId &&
+			player.Position.X == 0 && player.Position.Y == 0 {
+			return true
 		}
 	}
 	return false
@@ -265,49 +271,4 @@ func swapPlayers(
 	p2.player.Position = tmpI.Position
 	p[p1.key] = p1.player
 	p[p2.key] = p2.player
-}
-
-func (w *Worker) jump(p map[string]types.PlayerPosition) bool {
-	var pf, cf types.PlayerPosition
-
-	for k, player := range p {
-		if strings.HasSuffix(k, ":0") {
-			pf = player
-		}
-		if strings.HasSuffix(k, ":1") {
-			cf = player
-		}
-	}
-
-	if pf.FrameIdx == 0 {
-		w.Logger.Warn("hole", "key", pf.PlayerId, "player", pf)
-		return false
-	}
-	if cf.FrameIdx == 0 {
-		w.Logger.Warn("hole", "key", cf.PlayerId, "player", cf)
-		return false
-	}
-
-	prevFrame, err := w.stateBuffer.Get(pringleBuffer.Key(pf.FrameIdx))
-	if err != nil {
-		w.Logger.Warn("No previous frame to compare", "frame", pf.FrameIdx)
-		return false
-	}
-
-	for _, player := range prevFrame.Players {
-		if player.PlayerId != cf.PlayerId &&
-			positionsEqual(player.Position, cf.Position) {
-			w.Logger.Info("Duplicate player coordinates detected",
-				"jump_player", cf,
-				"real_player", player)
-			return true
-		}
-	}
-	return false
-}
-
-func positionsEqual(p1, p2 types.Position) bool {
-	const e = 0.01
-	return math.Abs(p1.X-p2.X) < e &&
-		math.Abs(p1.Y-p2.Y) < e
 }

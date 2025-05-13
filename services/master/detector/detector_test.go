@@ -1,7 +1,6 @@
 package detector
 
 import (
-	"github.com/Ygg-Drasill/DookieFilter/common/pringleBuffer"
 	"github.com/Ygg-Drasill/DookieFilter/common/types"
 	"github.com/Ygg-Drasill/DookieFilter/services/master/worker"
 	"github.com/stretchr/testify/assert"
@@ -175,54 +174,6 @@ func TestSwap(t *testing.T) {
 					t.Errorf("Player %s not found in map", key)
 				}
 			}
-		})
-	}
-}
-
-func TestJump(t *testing.T) {
-	testCases := []struct {
-		name        string
-		p           map[string]types.PlayerPosition
-		stateBuffer []*types.SmallFrame
-		expected    bool
-	}{
-		{
-			name: "Player Duplicate Coords Detected",
-			p: map[string]types.PlayerPosition{
-				"player1:10:0": {PlayerId: "player1", FrameIdx: 10, Position: types.Position{X: 3.0, Y: 4.0}},
-				"player1:11:1": {PlayerId: "player1", FrameIdx: 11, Position: types.Position{X: 5.0, Y: 6.0}},
-			},
-			stateBuffer: []*types.SmallFrame{
-				{FrameIdx: 10, Players: []types.PlayerPosition{
-					{PlayerId: "player2", FrameIdx: 10, Position: types.Position{X: 5.0, Y: 6.0}},
-				}},
-			},
-			expected: true},
-		{
-			name: "No Player Duplicate Coords Detected",
-			p: map[string]types.PlayerPosition{
-				"player1:10:0": {PlayerId: "player1", FrameIdx: 10, Position: types.Position{X: 3.0, Y: 4.0}},
-				"player1:11:1": {PlayerId: "player1", FrameIdx: 11, Position: types.Position{X: 5.0, Y: 6.0}},
-			},
-			stateBuffer: []*types.SmallFrame{
-				{FrameIdx: 10, Players: []types.PlayerPosition{
-					{PlayerId: "player2", FrameIdx: 10, Position: types.Position{X: 8.0, Y: 6.0}},
-				}},
-			},
-			expected: false,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			buffer := pringleBuffer.New[types.SmallFrame](10)
-			for _, frame := range tc.stateBuffer {
-				buffer.Insert(*frame)
-			}
-			w := getMockWorker()
-			w.stateBuffer = buffer
-			r := w.jump(tc.p)
-			assert.Equal(t, tc.expected, r)
 		})
 	}
 }
