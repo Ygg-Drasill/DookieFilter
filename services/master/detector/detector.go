@@ -54,7 +54,18 @@ func (w *Worker) Run(wg *sync.WaitGroup) {
 	}
 }
 
-const JumpThreshold = 5 //TODO: change me
+const (
+	fieldLength = 105.0
+	fieldWidth  = 68.0
+
+	playerMaxSpeed = 9.5
+	frameTime      = 1.0 / 25.0
+)
+
+var (
+	fieldSize       = math.Sqrt(fieldLength*fieldLength + fieldWidth*fieldWidth)
+	maxMovePerFrame = frameTime * playerMaxSpeed
+)
 
 func (w *Worker) detect(frame types.SmallFrame) {
 	if len(frame.Players) != 22 {
@@ -103,7 +114,7 @@ func (w *Worker) detect(frame types.SmallFrame) {
 	for playerId, values := range compareMap {
 		xDiff := math.Abs(values[0].Position.X - values[1].Position.X)
 		yDiff := math.Abs(values[0].Position.Y - values[1].Position.Y)
-		if xDiff > JumpThreshold || yDiff > JumpThreshold {
+		if xDiff > maxMovePerFrame || yDiff > maxMovePerFrame {
 			w.Logger.Info("Jump detected", "player_id", playerId, "x_diff", xDiff, "y_diff", yDiff, "frame", frame.FrameIdx)
 			checkPlayer[fmt.Sprintf("%s:%d:0", playerId, prevFrame.FrameIdx)] = values[0]
 			checkPlayer[fmt.Sprintf("%s:%d:1", playerId, frame.FrameIdx)] = values[1]
@@ -239,19 +250,6 @@ func getPair(players []swapPlayer, m swapPlayer) swapPlayer {
 	return m
 }
 
-const (
-	fieldLength = 105.0
-	fieldWidth  = 68.0
-
-	playerMaxSpeed = 9.5
-	frameTime      = 1.0 / 25.0
-)
-
-var (
-	fieldSize      = math.Sqrt(fieldLength*fieldLength + fieldWidth*fieldWidth)
-	maxMovePercent = frameTime * playerMaxSpeed
-)
-
 func positionProximity(p1, p2 swapPlayer) bool {
 	dx := p1.player.Position.X - p2.player.Position.X
 	dy := p1.player.Position.Y - p2.player.Position.Y
@@ -259,7 +257,7 @@ func positionProximity(p1, p2 swapPlayer) bool {
 
 	normalized := (distance / fieldSize) * 100
 
-	return normalized < maxMovePercent
+	return normalized < maxMovePerFrame
 }
 
 func swapPlayers(
