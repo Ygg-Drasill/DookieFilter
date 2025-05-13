@@ -44,11 +44,11 @@ func RandomFrame(awayPlayers, homePlayers int) types.Frame {
 		WallClock: int64(rand.Uint64()),
 	}
 
-	for i := 0; i < awayPlayers; i++ {
+    for range awayPlayers {
 		frame.AwayPlayers = append(frame.AwayPlayers, randomPlayer())
 	}
 
-	for i := 0; i < homePlayers; i++ {
+	for range homePlayers {
 		frame.HomePlayers = append(frame.HomePlayers, randomPlayer())
 	}
 
