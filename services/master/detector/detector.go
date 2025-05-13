@@ -58,7 +58,7 @@ const (
 	fieldLength = 105.0
 	fieldWidth  = 68.0
 
-	playerMaxSpeed = 9.5
+	playerMaxSpeed = 9.5 // m/s
 	frameTime      = 1.0 / 25.0
 )
 
