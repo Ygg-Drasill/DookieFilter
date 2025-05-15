@@ -68,27 +68,27 @@ func (w *Worker) detect(frame types.SmallFrame) {
 
 	compareMap := make(map[string][]types.PlayerPosition)
 	for _, player := range prevFrame.Players {
-		_, ok := compareMap[player.PlayerId]
+		_, ok := compareMap[player.PlayerNum]
 		if ok {
 			player.FrameIdx = prevFrame.FrameIdx
-			compareMap[player.PlayerId][0] = player
+			compareMap[player.PlayerNum][0] = player
 		}
 		if !ok {
-			compareMap[player.PlayerId] = make([]types.PlayerPosition, 2)
+			compareMap[player.PlayerNum] = make([]types.PlayerPosition, 2)
 			player.FrameIdx = prevFrame.FrameIdx
-			compareMap[player.PlayerId][0] = player
+			compareMap[player.PlayerNum][0] = player
 		}
 	}
 	for _, player := range frame.Players {
-		_, ok := compareMap[player.PlayerId]
+		_, ok := compareMap[player.PlayerNum]
 		if ok {
 			player.FrameIdx = frame.FrameIdx
-			compareMap[player.PlayerId][1] = player
+			compareMap[player.PlayerNum][1] = player
 		}
 		if !ok {
-			compareMap[player.PlayerId] = make([]types.PlayerPosition, 2)
+			compareMap[player.PlayerNum] = make([]types.PlayerPosition, 2)
 			player.FrameIdx = frame.FrameIdx
-			compareMap[player.PlayerId][1] = player
+			compareMap[player.PlayerNum][1] = player
 		}
 	}
 
