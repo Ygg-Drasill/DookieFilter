@@ -38,9 +38,9 @@ class ImputationService:
 
         get_nearest_players()
 
-    def get_player_history(self, frame_idx: int, player_number: int):
-        self.socket_storage_api.send("player")
-        self.socket_storage_api.send_json()
+    def get_player_history(self, frame_idx: int, player_number: int, nearest: int, target_player: int):
+        self.socket_storage_api.send("frameRange")
+        self.socket_storage_api.send_json({"startIdx": player_number, "endIdx": frame_idx, "n": nearest, "target": target_player})
 
     def store_player_frame(self):
         pass

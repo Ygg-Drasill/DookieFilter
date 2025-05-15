@@ -12,6 +12,7 @@ type Worker struct {
 	worker.BaseWorker
 	socketProvide *zmq.Socket
 	socketConsume *zmq.Socket
+	socketAPI     *zmq.Socket
 
 	bufferSize int
 	players    map[string]pringleBuffer.PringleBuffer[types.PlayerPosition]
@@ -42,6 +43,7 @@ func (w *Worker) Run(wg *sync.WaitGroup) {
 	listenerWaitGroup := &sync.WaitGroup{}
 	listenerWaitGroup.Add(2)
 	go w.listenProvide(listenerWaitGroup)
+	go w.listenAPI(listenerWaitGroup)
 	go w.listenConsume(listenerWaitGroup)
 	listenerWaitGroup.Wait()
 	w.Logger.Warn("Storage worker stopped")

@@ -11,6 +11,7 @@ import (
 	"github.com/Ygg-Drasill/DookieFilter/services/master/worker"
 	zmq "github.com/pebbe/zmq4"
 	"github.com/stretchr/testify/assert"
+	"log/slog"
 	"strconv"
 	"strings"
 	"testing"
@@ -19,6 +20,7 @@ import (
 const testFrameCount = 10
 
 func TestWorkerIntegration(t *testing.T) {
+	slog.SetLogLoggerLevel(slog.LevelError)
 	ctx, err := zmq.NewContext()
 	if err != nil {
 		panic(err)

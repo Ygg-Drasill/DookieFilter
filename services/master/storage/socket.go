@@ -6,38 +6,16 @@ import (
 )
 
 func (w *Worker) connect() error {
-	var err error
-	w.socketConsume, err = w.SocketContext.NewSocket(zmq.PULL)
-	if err != nil {
-		return err
-	}
+	w.socketConsume = w.BaseWorker.NewSocket(zmq.PULL)
+	w.socketProvide = w.BaseWorker.NewSocket(zmq.REP)
+	w.socketAPI = w.BaseWorker.NewSocket(zmq.REP)
 
-	w.socketProvide, err = w.SocketContext.NewSocket(zmq.REP)
-	if err != nil {
-		return err
-	}
-
-	err = w.socketConsume.Bind(endpoints.InProcessEndpoint(endpoints.STORAGE))
-	if err != nil {
-		return err
-	}
-
-	err = w.socketProvide.Bind(endpoints.InProcessEndpoint(endpoints.STORAGE_PROVIDE))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	w.BaseWorker.Bind(w.socketConsume, endpoints.InProcessEndpoint(endpoints.STORAGE))
+	w.BaseWorker.Bind(w.socketProvide, endpoints.InProcessEndpoint(endpoints.STORAGE_PROVIDE))
+	w.BaseWorker.Bind(w.socketAPI, endpoints.TcpEndpoint(endpoints.STORAGE_API))
+	return nil //TODO: no return value (but for all workers)
 }
 
 func (w *Worker) close() {
-	var err error
-	err = w.socketConsume.Close()
-	if err != nil {
-		w.Logger.Error("failed to close socket", "error", err.Error())
-	}
-	err = w.socketProvide.Close()
-	if err != nil {
-		w.Logger.Error("failed to close socket", "error", err.Error())
-	}
+	w.BaseWorker.CloseAllSockets()
 }
