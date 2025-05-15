@@ -1,7 +1,6 @@
 package types
 
 import (
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"testing"
@@ -16,8 +15,8 @@ var cases = map[string]SmallFrame{
 					X: rand.Float64(),
 					Y: rand.Float64(),
 				},
-				FrameIdx: 42,
-				PlayerId: uuid.New().String(),
+				FrameIdx:  42,
+				PlayerNum: rand.Intn(100),
 			},
 		},
 		Ball: Position{

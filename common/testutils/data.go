@@ -71,3 +71,16 @@ func RandomNextFrame(previous types.Frame) types.Frame {
 	next.GameClock += rand.Float64()
 	return next
 }
+
+func RandomFrameRange(teamSize int, frameCount int) []types.Frame {
+	initFrame := RandomFrame(teamSize, teamSize)
+	frames := make([]types.Frame, frameCount)
+	for i := range frameCount {
+		if i == 0 {
+			frames[0] = initFrame
+			continue
+		}
+		frames[i] = RandomNextFrame(frames[i-1])
+	}
+	return frames
+}
