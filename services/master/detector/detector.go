@@ -78,7 +78,7 @@ func (w *Worker) detect(frame types.SmallFrame) {
 		return
 	}
 
-	compareMap := make(map[string][]types.PlayerPosition)
+	compareMap := make(map[int][]types.PlayerPosition)
 	for _, player := range prevFrame.Players {
 		_, ok := compareMap[player.PlayerNum]
 		if ok {
