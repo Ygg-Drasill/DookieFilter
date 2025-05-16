@@ -20,8 +20,8 @@ type Position struct {
 }
 
 type PlayerKey struct {
-	PlayerNumber int
-	Home         bool
+	PlayerNumber int  `json:"playerNumber"`
+	Home         bool `json:"home"`
 }
 
 func NewPlayerKey(num int, home bool) PlayerKey {
