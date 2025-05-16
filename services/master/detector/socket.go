@@ -12,7 +12,17 @@ func (w *Worker) connect() error {
 		return err
 	}
 
+	w.socketStorage, err = w.SocketContext.NewSocket(zmq.PUSH)
+	if err != nil {
+		return err
+	}
+
 	err = w.socketListen.Bind(endpoints.InProcessEndpoint(endpoints.DETECTOR))
+	if err != nil {
+		return err
+	}
+
+	err = w.socketStorage.Connect(endpoints.InProcessEndpoint(endpoints.STORAGE))
 	if err != nil {
 		return err
 	}

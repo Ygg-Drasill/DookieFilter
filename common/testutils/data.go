@@ -62,13 +62,13 @@ func RandomFrame(awayPlayers, homePlayers int) types.Frame {
 		homeNumbers[i] = i
 	}
 
-	for i := 0; i < awayPlayers; i++ {
+	for i := range awayPlayers {
 		var num int
 		awayNumbers, num = popRandom(awayNumbers)
 		frame.AwayPlayers[i] = randomPlayer(num)
 	}
 
-	for i := 0; i < homePlayers; i++ {
+	for i := range homePlayers {
 		var num int
 		homeNumbers, num = popRandom(homeNumbers)
 		frame.HomePlayers[i] = randomPlayer(num)
