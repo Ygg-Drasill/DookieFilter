@@ -74,7 +74,7 @@ func TestWorkerIntegration(t *testing.T) {
 		for _, p := range f.Players {
 			var message string
 			for message == "" {
-				_, err = storageSock.SendMessage("playerFrame", f.FrameIdx, ":", p.PlayerId)
+				_, err = storageSock.SendMessage("playerFrame", f.FrameIdx, ":", p.PlayerNum)
 				if err != nil {
 					panic(err)
 				}

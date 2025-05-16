@@ -11,16 +11,16 @@ MAX_REALISTIC_DISTANCE = 0.42
 
 class Chunk:
     def __init__(self):
-        self.count: int = 0
+        self.frameCount: int = 0
         self.data_fields = {"frame_index", "ball_x", "ball_y"}
         self.data: list[dict[str, Any]] = []
 
     def __length__(self):
-        return self.count
+        return self.frameCount
 
     def add_data(self, data: dict[str, Any]) -> None:
         self.data.append(data)
-        self.count += 1
+        self.frameCount += 1
         self.data_fields = self.data_fields.union(data.keys())
 
     def add_frame(self, frame):
@@ -37,7 +37,7 @@ class Chunk:
         for player in awayplayers:
             self.add_player_data(player, row,  "a_")
 
-        self.count += 1
+        self.frameCount += 1
         self.data.append(row)
 
     def write_to_file(self, output_target: str):
