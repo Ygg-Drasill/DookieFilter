@@ -109,10 +109,11 @@ func (w *Worker) detect(frame types.SmallFrame) {
 		checkPlayer = make(map[string]types.PlayerPosition)
 	)
 	for playerId, values := range compareMap {
-		xDiff := math.Abs(values[0].Position.X - values[1].Position.X)
-		yDiff := math.Abs(values[0].Position.Y - values[1].Position.Y)
-		if xDiff > maxMovePerFrame || yDiff > maxMovePerFrame {
-			w.Logger.Info("Jump detected", "player_id", playerId, "x_diff", xDiff, "y_diff", yDiff, "frame", frame.FrameIdx)
+		moveDiff := math.Hypot(
+			values[0].Position.X-values[1].Position.X,
+			values[0].Position.Y-values[1].Position.Y)
+		if moveDiff > maxMovePerFrame {
+			w.Logger.Info("Jump detected", "player_id", playerId, "moveDiff", moveDiff, "frame", frame.FrameIdx)
 			checkPlayer[fmt.Sprintf("%s:%d:0", playerId, prevFrame.FrameIdx)] = values[0]
 			checkPlayer[fmt.Sprintf("%s:%d:1", playerId, frame.FrameIdx)] = values[1]
 		}
