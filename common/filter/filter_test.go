@@ -16,10 +16,6 @@ type testElement struct {
 	x float64
 }
 
-func (t *testElement) Keys() []string {
-	return []string{"x"}
-}
-
 func (t *testElement) Update(key string, val float64) error {
 	if key == "x" {
 		t.x = val
@@ -34,12 +30,6 @@ func (t *testElement) Get(key string) (float64, error) {
 	}
 	return 0, KeyNotFoundError{}
 }
-
-//func TestGolayFilter(t *testing.T) {
-//	f := testFilter{
-//		elements: make([]FilterableElement, 0),
-//	}
-//}
 
 func TestPlot(t *testing.T) {
 	const points = 50
@@ -56,10 +46,10 @@ func TestPlot(t *testing.T) {
 		noiseSine[i].X = x
 		noiseSine[i].Y = y + (rand.Float64()-0.5)*scale
 	}
-	filter := NewSavitzkyGolayFilter[*testElement](5, 0)
+	testFilter := NewSavitzkyGolayFilter[*testElement](5, 0)
 	j := 0
 	for i := range noiseSine {
-		y, err := filter.Step(&testElement{x: noiseSine[i].Y})
+		y, err := testFilter.Step(&testElement{x: noiseSine[i].Y})
 		if errors.Is(err, NotFullError{}) {
 			continue
 		}
@@ -88,9 +78,10 @@ func TestPlot(t *testing.T) {
 	p := plot.New()
 	p.Title.Text = "Sinus noise filter"
 	err := plotutil.AddLinePoints(p,
-		"Sine", sine,
+		"Filter", filtered,
 		"Noise", noiseSine,
-		"Filter", filtered)
+		//"Sine", sine
+	)
 	assert.NoError(t, err)
 	err = p.Save(4*vg.Inch, 4*vg.Inch, "points.png")
 	assert.NoError(t, err)
