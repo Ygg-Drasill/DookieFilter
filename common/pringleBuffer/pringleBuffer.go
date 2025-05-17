@@ -14,6 +14,8 @@ type PringleBuffer[TElement PringleIndexable] struct {
 	tail  *PringleElement[TElement]
 	Size  int
 	count int
+
+	onTailPop func(TElement)
 }
 
 func New[TElement PringleIndexable](size int) *PringleBuffer[TElement] {
@@ -65,7 +67,7 @@ func (pb *PringleBuffer[TElement]) Insert(data TElement) {
 	}
 
 	pb.insertBetween(prev, next, newElement)
-	pb.trimTail()
+	pb.popTail()
 }
 
 func (pb *PringleBuffer[TElement]) Get(key Key) (TElement, error) {
@@ -106,8 +108,12 @@ func (pb *PringleBuffer[TElement]) insertBetween(prev, next, element *PringleEle
 	element.prev = prev
 }
 
-func (pb *PringleBuffer[TElement]) trimTail() {
+func (pb *PringleBuffer[TElement]) popTail() {
 	tail := pb.tail
 	pb.tail = tail.prev
 	pb.tail.next = nil
+
+	if pb.onTailPop != nil {
+		pb.onTailPop(pb.head.data)
+	}
 }
