@@ -47,6 +47,11 @@ func (pb *PringleBuffer[TElement]) Insert(data TElement) {
 		prev, next = next, next.next
 	}
 
+	if next != nil && next.Key() == newElement.Key() {
+		next.data = data
+		return
+	}
+
 	//insert not full
 	if !full {
 		pb.count++
