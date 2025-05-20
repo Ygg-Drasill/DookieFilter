@@ -23,13 +23,18 @@ const (
 	// DETECTOR
 	//PUSH/PULL binds on detector worker
 	DETECTOR SocketEndpoint = "detection"
+
+	// FILTER
+	//PUSH/PULL binds on filter worker
+	FILTER_INPUT SocketEndpoint = "filter"
 )
 
 var (
 	// STORAGE_API
 	//REQ/REP binds on storage worker
 	//Like
-	STORAGE_API ExternalSocketEndpoint
+	STORAGE_API   ExternalSocketEndpoint
+	FILTER_OUTPUT ExternalSocketEndpoint
 )
 
 func init() {
