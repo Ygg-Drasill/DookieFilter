@@ -253,9 +253,9 @@ func positionProximity(p1, p2 swapPlayer) bool {
 	dy := p1.player.Position.Y - p2.player.Position.Y
 	distance := math.Sqrt(dx*dx + dy*dy)
 
-	normalized := (distance / fieldSize) * 100
-
-	return normalized < maxMovePerFrame
+	normalizedDistance := distance / fieldSize
+	normalizedMove := maxMovePerFrame / fieldSize
+	return normalizedDistance < normalizedMove
 }
 
 func swapPlayers(
