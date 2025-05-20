@@ -90,7 +90,7 @@ class PlayerDataset(Dataset):
 
         seq = self.data[player_number][no_padding_idx:no_padding_idx + self.sequence_length]
         target = player[no_padding_idx + self.sequence_length]
-        target_normalized = [normalize_x(target[0]), normalize_y(target[1])]
+        target_normalized = [target[0], target[1]]
         return (torch.from_numpy(np.array(seq)).to(dtype=torch.float32),
                 torch.from_numpy(np.array(target_normalized)).to(dtype=torch.float32))
 
