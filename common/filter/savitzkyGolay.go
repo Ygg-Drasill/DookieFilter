@@ -6,8 +6,8 @@ const length = 5
 // Order of 2
 var coefficients = []float64{-3, 12, 17, 12, -3}
 
-func NewSavitzkyGolayFilter[TElement FilterableElement]() filter[TElement] {
-	return filter[TElement]{
+func NewSavitzkyGolayFilter[TElement FilterableElement]() Filter[TElement] {
+	return Filter[TElement]{
 		FilterFunction: func(f Interface[TElement], elements []TElement) []TElement {
 			keys := f.Keys()
 			updateIndex := f.Size() / 2

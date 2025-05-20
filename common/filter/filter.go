@@ -6,22 +6,22 @@ package filter
 // FilterFunction is a function that applies a filter to a slice of type FilterableElement.
 type FilterFunction[TElement FilterableElement] func(Interface[TElement], []TElement) []TElement
 
-type filter[TElement FilterableElement] struct {
+type Filter[TElement FilterableElement] struct {
 	FilterFunction FilterFunction[TElement]
 	Elements       []TElement
 	size           int
 	full           bool
 }
 
-func (f *filter[TElement]) Keys() []string {
+func (f *Filter[TElement]) Keys() []string {
 	return []string{"x"}
 }
 
-func (f *filter[TElement]) Size() int {
+func (f *Filter[TElement]) Size() int {
 	return f.size
 }
 
-func (f *filter[TElement]) Step(element TElement) (*TElement, FilterError) {
+func (f *Filter[TElement]) Step(element TElement) (*TElement, FilterError) {
 	f.Elements = append(f.Elements, element)
 	if !f.full && len(f.Elements) < f.size {
 		return nil, NotFullError{}
