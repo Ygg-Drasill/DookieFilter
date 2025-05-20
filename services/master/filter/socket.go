@@ -10,7 +10,7 @@ func (w *Worker) connect() error {
 	w.socketOutput = w.BaseWorker.NewSocket(zmq.PUSH)
 
 	w.BaseWorker.Bind(w.socketInput, endpoints.InProcessEndpoint(endpoints.FILTER_INPUT))
-	w.BaseWorker.Bind(w.socketOutput, endpoints.TcpEndpoint(endpoints.FILTER_OUTPUT))
+	w.BaseWorker.Bind(w.socketOutput, w.outputEndpoint)
 
 	return nil //TODO: no return value (but for all workers)
 }

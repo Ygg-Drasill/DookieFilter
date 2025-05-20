@@ -13,11 +13,14 @@ type Worker struct {
 	worker.BaseWorker
 	socketInput  *zmq.Socket
 	socketOutput *zmq.Socket
+
+	outputEndpoint string
 }
 
 func New(ctx *zmq.Context, options ...func(worker *Worker)) *Worker {
 	w := &Worker{
-		BaseWorker: worker.NewBaseWorker(ctx, "filter"),
+		BaseWorker:     worker.NewBaseWorker(ctx, "filter"),
+		outputEndpoint: endpoints.TcpEndpoint(endpoints.FILTER_OUTPUT),
 	}
 	for _, opt := range options {
 		opt(w)
