@@ -29,6 +29,7 @@ def get_features(
     is_home = player_key.split("_")[0] == "h"
     player_numbers = set([k[:-2] for k in dataframe_row.keys()])
     other_players = {key:[dataframe_row.pop(key+ "_x"), dataframe_row.pop(key+ "_y")] for key in player_numbers}
+
     home_closest_keys, away_closest_keys = get_nearest_players(player, other_players, n_nearest_players)
     team_keys = home_closest_keys if is_home else away_closest_keys
     opponent_keys = away_closest_keys if is_home else home_closest_keys
@@ -44,6 +45,7 @@ def get_features(
 
 
 def get_nearest_players(
+        is_home: bool,
         target,
         others: dict[str, list[ndarray[int]]],
         n_nearest_players: int) -> (list[str], list[str]):

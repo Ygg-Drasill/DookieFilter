@@ -53,8 +53,9 @@ class PlayerDataset(Dataset):
                     elif prefix == "a":
                         away_distances.append((distance, key))
 
-                home_closest_keys = [k for _, k in heapq.nsmallest(n_nearest_players, home_distances)]
-                away_closest_keys = [k for _, k in heapq.nsmallest(n_nearest_players, away_distances)]
+                is_home = player_number.split("_")[0] == "h"
+                home_closest_keys = [k for _, k in heapq.nsmallest(n_nearest_players, home_distances if is_home else away_distances)]
+                away_closest_keys = [k for _, k in heapq.nsmallest(n_nearest_players, away_distances if not is_home else home_distances)]
                 data_row = [normalize_x(pos[0]), normalize_y(pos[1]),
                             normalize_x(ball[i][0]), normalize_y(ball[i][1])]
 
