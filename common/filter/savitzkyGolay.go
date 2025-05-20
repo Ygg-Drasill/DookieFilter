@@ -1,10 +1,12 @@
 package filter
 
 const divisor = 35.0
+const length = 5
 
+// Order of 2
 var coefficients = []float64{-3, 12, 17, 12, -3}
 
-func NewSavitzkyGolayFilter[TElement FilterableElement](length int, order int) filter[TElement] {
+func NewSavitzkyGolayFilter[TElement FilterableElement]() filter[TElement] {
 	return filter[TElement]{
 		FilterFunction: func(f Interface[TElement], elements []TElement) []TElement {
 			keys := f.Keys()
