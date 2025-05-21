@@ -52,7 +52,7 @@ def train_epoch(epoch: int,
         output = torch.stack((denormalize_x(out_x), denormalize_y(out_y)), dim=1)
 
         loss = loss_function(output, batch_y)
-        loss = loss + low_movement_penalty * LOSS_MOVEMENT_SCALE + angle_penalty * LOSS_ANGLE_SCALE
+        #loss = loss + low_movement_penalty * LOSS_MOVEMENT_SCALE + angle_penalty * LOSS_ANGLE_SCALE
 
         running_loss += loss.item()
         total += 1

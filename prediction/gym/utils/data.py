@@ -45,7 +45,6 @@ def get_features(
 
 
 def get_nearest_players(
-        is_home: bool,
         target,
         others: dict[str, list[ndarray[int]]],
         n_nearest_players: int) -> (list[str], list[str]):
