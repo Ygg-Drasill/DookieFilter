@@ -1,9 +1,8 @@
 package filter
 
 import (
-	"github.com/Ygg-Drasill/DookieFilter/common/pringleBuffer"
+	"github.com/Ygg-Drasill/DookieFilter/common/filter"
 	"github.com/Ygg-Drasill/DookieFilter/common/socket/endpoints"
-	"github.com/Ygg-Drasill/DookieFilter/common/types"
 	"github.com/Ygg-Drasill/DookieFilter/services/master/worker"
 	zmq "github.com/pebbe/zmq4"
 	"sync"
@@ -14,6 +13,7 @@ type Worker struct {
 	socketInput  *zmq.Socket
 	socketOutput *zmq.Socket
 
+	filter         savGolFilter
 	outputEndpoint string
 }
 
@@ -21,6 +21,7 @@ func New(ctx *zmq.Context, options ...func(worker *Worker)) *Worker {
 	w := &Worker{
 		BaseWorker:     worker.NewBaseWorker(ctx, "filter"),
 		outputEndpoint: endpoints.TcpEndpoint(endpoints.FILTER_OUTPUT),
+		filter:         savGolFilter{filter.NewSavitzkyGolayFilter[filterableFrame]()},
 	}
 	for _, opt := range options {
 		opt(w)
