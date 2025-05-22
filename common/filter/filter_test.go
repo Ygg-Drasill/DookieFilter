@@ -46,7 +46,7 @@ func TestPlot(t *testing.T) {
 		noiseSine[i].X = x
 		noiseSine[i].Y = y + (rand.Float64()-0.5)*scale
 	}
-	testFilter := NewSavitzkyGolayFilter[*testElement](5, 0)
+	testFilter := NewSavitzkyGolayFilter[*testElement]()
 	j := 0
 	for i := range noiseSine {
 		y, err := testFilter.Step(&testElement{x: noiseSine[i].Y})
