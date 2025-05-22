@@ -62,9 +62,9 @@ def init():
 
     hyper_parameters = {
         'n_nearest_players': [3,4,5,8,16], #3-5
-        'stack_size': [2,3,4], #4-32
+        'stack_size': [2,3,4,8,32], #4-32
         'hidden_size': [128,256,512], #32-128
-        'sequence_length': [20,40], #20-40
+        'sequence_length': [20], #20-40
         'batch_size': [64, 128, 256],
         'lr': [0.01, 0.001, 0.0001],
     }
