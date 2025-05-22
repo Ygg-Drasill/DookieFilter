@@ -1,45 +1,34 @@
 package filter
 
 import (
+	"fmt"
 	"github.com/Ygg-Drasill/DookieFilter/common/filter"
 	"github.com/Ygg-Drasill/DookieFilter/common/types"
 )
 
-type savGolFilter[TElement filter.FilterableElement] struct {
-	filter.Filter[TElement]
+type filterableFrame types.SmallFrame
+
+func (f filterableFrame) Update(key string, value float64) error {
+	//TODO implement me
+	panic("implement me")
 }
 
-type filterPlayerPosition types.PlayerPosition
-
-func (f *filterPlayerPosition) Update(key string, value float64) error {
-	switch key {
-	case "x":
-		f.X = value
-		return nil
-	case "y":
-		f.Y = value
-		return nil
-	default:
-
-		return filter.KeyNotFoundError{}
-	}
+func (f filterableFrame) Get(key string) (float64, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
-func (f *filterPlayerPosition) Get(key string) (float64, error) {
-	switch key {
-	case "x":
-		return f.X, nil
-	case "y":
-		return f.Y, nil
-	default:
-
-		return 0, filter.KeyNotFoundError{}
-	}
+type savGolFilter struct {
+	filter.Filter[filterableFrame]
 }
 
-func (f *savGolFilter[TElement]) Keys() []string {
-	return []string{
-		"x",
-		"y",
+func (f savGolFilter) Keys() []string {
+	keys := make([]string, 0)
+	for _, player := range f.Elements[0].Players {
+		k := fmt.Sprintf("%t_%d", player.Home, player.PlayerNum)
+		keys = append(keys, fmt.Sprintf("%s_%s", k, "x"))
+		keys = append(keys, fmt.Sprintf("%s_%s", k, "y"))
 	}
+
+	return keys
 }
