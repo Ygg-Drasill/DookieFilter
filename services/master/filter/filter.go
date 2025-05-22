@@ -1,7 +1,6 @@
 package filter
 
 import (
-	"github.com/Ygg-Drasill/DookieFilter/common/filter"
 	"github.com/Ygg-Drasill/DookieFilter/common/socket/endpoints"
 	"github.com/Ygg-Drasill/DookieFilter/services/master/worker"
 	zmq "github.com/pebbe/zmq4"
@@ -13,7 +12,7 @@ type Worker struct {
 	socketInput  *zmq.Socket
 	socketOutput *zmq.Socket
 
-	filter         savGolFilter
+	filter         *savGolFilter
 	outputEndpoint string
 }
 
@@ -21,7 +20,7 @@ func New(ctx *zmq.Context, options ...func(worker *Worker)) *Worker {
 	w := &Worker{
 		BaseWorker:     worker.NewBaseWorker(ctx, "filter"),
 		outputEndpoint: endpoints.TcpEndpoint(endpoints.FILTER_OUTPUT),
-		filter:         savGolFilter{filter.NewSavitzkyGolayFilter[filterableFrame]()},
+		filter:         newSavGolFilter(),
 	}
 	for _, opt := range options {
 		opt(w)
@@ -37,6 +36,6 @@ func (w *Worker) Run(wg *sync.WaitGroup) {
 	if err != nil {
 		w.Logger.Error("Failed to bind/connect zmq sockets", "error", err.Error())
 	}
-
+	w.listenInput()
 	w.Logger.Warn("Filter worker stopped")
 }

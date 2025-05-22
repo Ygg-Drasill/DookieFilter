@@ -44,15 +44,28 @@ type savGolFilter struct {
 	filter.Filter[*filterableFrame]
 }
 
-func (f savGolFilter) Keys() []string {
-	keys := make([]string, 0)
-	for _, player := range f.Elements[0].Players {
-		k := fmt.Sprintf("%t_%d", player.Home, player.PlayerNum)
-		keys = append(keys, fmt.Sprintf("%s_%s", k, "x"))
-		keys = append(keys, fmt.Sprintf("%s_%s", k, "y"))
-	}
+func Keys() filter.KeysFunction[*filterableFrame] {
+	return func(f *filter.Filter[*filterableFrame]) []string {
+		keys := make([]string, 0)
+		keymap := make(map[types.PlayerKey]int)
+		filterSize := f.Size()
 
-	return keys
+		for _, e := range f.Elements {
+			for _, player := range e.Players {
+				keymap[types.PlayerKey{PlayerNumber: player.PlayerNum, Home: player.Home}]++
+			}
+		}
+
+		for key, population := range keymap {
+			if population == filterSize {
+				k := fmt.Sprintf("%t_%d", key.Home, key.PlayerNumber)
+				keys = append(keys, fmt.Sprintf("%s_%s", k, "x"))
+				keys = append(keys, fmt.Sprintf("%s_%s", k, "y"))
+			}
+		}
+
+		return keys
+	}
 }
 
 func decodeKey(key string) (bool, int, bool) {
@@ -61,4 +74,8 @@ func decodeKey(key string) (bool, int, bool) {
 	number, _ := strconv.ParseInt(parts[1], 10, 64)
 	axis := parts[2] == "x"
 	return home, int(number), axis
+}
+
+func newSavGolFilter() *savGolFilter {
+	return &savGolFilter{filter.New(filter.SavGolFilter[*filterableFrame](), Keys())}
 }

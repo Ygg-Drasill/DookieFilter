@@ -7,11 +7,9 @@ import (
 	"github.com/Ygg-Drasill/DookieFilter/common/types"
 	zmq "github.com/pebbe/zmq4"
 	"strings"
-	"sync"
 )
 
-func (w *Worker) listenInput(wg *sync.WaitGroup) {
-	defer wg.Done()
+func (w *Worker) listenInput() {
 	for {
 		topic, err := w.socketInput.Recv(zmq.SNDMORE)
 		if err != nil {
@@ -24,7 +22,8 @@ func (w *Worker) listenInput(wg *sync.WaitGroup) {
 
 		if topic == "frame" {
 			frame := types.DeserializeFrame(strings.Join(message, ""))
-			filteredFrame, err := w.filter.Step(filterableFrame(frame))
+			ff := filterableFrame(frame)
+			filteredFrame, err := w.filter.Step(&ff)
 			if (errors.Is(err, filter.NotFullError{})) {
 				continue
 			}
@@ -39,6 +38,5 @@ func (w *Worker) listenInput(wg *sync.WaitGroup) {
 				w.Logger.Error("Error sending message:", "error", err.Error())
 			}
 		}
-
 	}
 }
