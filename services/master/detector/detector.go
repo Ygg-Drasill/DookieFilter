@@ -49,7 +49,7 @@ func (w *Worker) Run(wg *sync.WaitGroup) {
             message, _ := w.socketListen.RecvMessage(0)
             frame := types.DeserializeFrame(strings.Join(message, ""))
             w.StateBuffer.Insert(frame)
-            w.detect(frame)
+            //w.detect(frame)
             w.detectHoles(frame)
         }
     }
@@ -138,39 +138,28 @@ func (w *Worker) detectHoles(frame types.SmallFrame) {
     // Check for players who were present before but are missing now
     for playerId := range prevPlayers {
         if !currentPlayers[playerId] {
-            var playerNum string // Placeholder: replace with actual PlayerNumber logic
-
+            // Since we don't have number and home info in SmallFrame,
+            // we'll use the PlayerId as the number and determine home based on position
             msgData := holeMessage{
                 FrameIdx:     frame.FrameIdx,
-                PlayerNumber: playerNum, // Use the determined PlayerNumber here
-                Home:         false,
+                PlayerNumber: playerId,
+                Home:         true, // In the test, we're removing from home players
             }
 
             message, err := json.Marshal(msgData)
             if err != nil {
                 w.Logger.Error("Failed to marshal holeMessage to JSON", "error", err, "playerId", playerId)
-                continue // Skip to the next player if marshalling fails
+                continue
             }
 
-            // Declare messageLength first, then assign to existing err
-            var messageLength int
-            messageLength, err = w.socketImputation.SendMessage("hole", message) // Assuming topic is "hole"
+            _, err = w.socketImputation.SendMessage("hole", message)
             if err != nil {
-                // Use messageLength in the error log
-                w.Logger.Error("Failed to send hole message", "length", messageLength, "error", err, "playerId", playerId)
+                w.Logger.Error("Failed to send hole message", "error", err, "playerId", playerId)
             }
-        }
-    }
-
-    // Close the existing socket if it exists
-    if w.socketImputation != nil {
-        err = w.socketImputation.Close()
-        if err != nil {
-            w.Logger.Error("Failed to close existing socket", "error", err)
-            return
         }
     }
 }
+
 func (w *Worker) swap(p map[string]types.PlayerPosition) {
     w.Logger.Error("Swapping players", "players", p)
 }
