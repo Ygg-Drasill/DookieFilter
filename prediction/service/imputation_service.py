@@ -5,7 +5,7 @@ import torch
 import zmq
 from numpy import ndarray
 
-from gym.utils.data import get_nearest_players
+from gym.utils.data import denormalize_x, denormalize_y
 from model.player_predictor import PlayerPredictor
 
 PROTOCOL = "tcp"
@@ -78,7 +78,7 @@ class ImputationService:
         out: tuple[torch.Tensor] = self.model(x)
         prediction: torch.Tensor = out[0]
         target_next = prediction.detach().cpu().numpy().squeeze()
-        return {"x": target_next[0].item(), "y": target_next[1].item()}
+        return {"x": denormalize_x(target_next[0].item()), "y": denormalize_y(target_next[1].item())}
 
     def store_player_frame(self):
         pass
