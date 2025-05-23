@@ -39,6 +39,10 @@ func (pp PlayerPosition) Key() pringleBuffer.Key {
 	return pringleBuffer.Key(pp.FrameIdx)
 }
 
+func (pp PlayerPosition) SKey() string {
+	return fmt.Sprintf("%d:%t", pp.PlayerNum, pp.Home)
+}
+
 func (frame SmallFrame) Key() pringleBuffer.Key {
 	return pringleBuffer.Key(frame.FrameIdx)
 }
