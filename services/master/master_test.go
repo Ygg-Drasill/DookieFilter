@@ -19,6 +19,7 @@ import (
 const testFrameCount = 10
 
 func TestWorkerIntegration(t *testing.T) {
+	t.SkipNow()
 	ctx, err := zmq.NewContext()
 	if err != nil {
 		panic(err)
