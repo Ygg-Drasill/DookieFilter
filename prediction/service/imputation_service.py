@@ -1,5 +1,7 @@
 import typing
 
+import numpy as np
+import torch
 import zmq
 from numpy import ndarray
 
@@ -20,6 +22,10 @@ class ImputationService:
         self.socket_imputation = self.context.socket(zmq.PULL)
         self.player_series: dict[str, list[ndarray]] = dict[str, list[ndarray]]()
         self.active = False
+
+        model.to(self.model.device)
+        model.eval()
+        torch.set_grad_enabled(False)
 
     def connect(self, imputation_port: int, storage_api_port: int, storage_port: int):
         self.socket_imputation.bind(f"{PROTOCOL}://{ADDRESS}:{imputation_port}")
@@ -67,7 +73,25 @@ class ImputationService:
         return response
 
     def predict(self, sequence: list[dict[str, typing.Any]]) -> dict[str, float]:
-        return {"x": 42.0, "y": 69.0}
+        x = sequence_to_tensor(sequence)
+        x = x.reshape(1, len(sequence), self.model.input_size).to(self.model.device)
+        out: tuple[torch.Tensor] = self.model(x)
+        prediction: torch.Tensor = out[0]
+        target_next = prediction.detach().cpu().numpy().squeeze()
+        return {"x": target_next[0].item(), "y": target_next[1].item()}
 
     def store_player_frame(self):
         pass
+
+def sequence_to_tensor(sequence: list[dict[str, typing.Any]]) -> torch.Tensor:
+    x = []
+    for item in sequence:
+        xt = [item["target"]["x"], item["target"]["y"], item["ball"]["x"], item["ball"]["y"]]
+        for t in item["t"]:
+            xt.append(t["x"])
+            xt.append(t["y"])
+        for o in item["o"]:
+            xt.append(o["x"])
+            xt.append(o["y"])
+        x.append(xt)
+    return torch.Tensor(x)

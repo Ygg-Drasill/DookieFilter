@@ -1,22 +1,27 @@
 from threading import Thread
 
+import torch
 import zmq
 
 from model.player_predictor import PlayerPredictor
 from service.imputation_service import ImputationService
+from service.imputation_service import sequence_to_tensor
 
 test_response = [{
     "target": {"x": 0, "y": 0},
-    "home": [{"x": 0, "y": 0}, {"x": 0, "y": 0}],
-    "away": [{"x": 0, "y": 0}, {"x": 0, "y": 0}],
+    "ball": {"x": 0, "y": 0},
+    "t": [{"x": 0, "y": 0}, {"x": 0, "y": 0}],
+    "o": [{"x": 0, "y": 0}, {"x": 0, "y": 0}],
 },{
     "target": {"x": 1, "y": 1},
-    "home": [{"x": 1, "y": 1}, {"x": 1, "y": 1}],
-    "away": [{"x": 1, "y": 1}, {"x": 1, "y": 1}],
+    "ball": {"x": 1, "y": 1},
+    "t": [{"x": 1, "y": 1}, {"x": 1, "y": 1}],
+    "o": [{"x": 1, "y": 1}, {"x": 1, "y": 1}],
 },{
     "target": {"x": 2, "y": 2},
-    "home": [{"x": 2, "y": 2}, {"x": 2, "y": 2}],
-    "away": [{"x": 2, "y": 2}, {"x": 2, "y": 2}],
+    "ball": {"x": 2, "y": 2},
+    "t": [{"x": 2, "y": 2}, {"x": 2, "y": 2}],
+    "o": [{"x": 2, "y": 2}, {"x": 2, "y": 2}],
 }]
 
 test_request = [{
@@ -25,7 +30,8 @@ test_request = [{
 }]
 
 def test_service():
-    model = PlayerPredictor("cpu", 2, 4, 1)
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model = PlayerPredictor(device, 2, 4, 1)
     service = ImputationService(model, sequence_length=3)
     ctx = service.context
     service.socket_imputation.bind(f"inproc://imputation")
@@ -56,3 +62,7 @@ def test_service():
     assert prediction["player_number"] == test_request[0]["player_number"]
 
     socket_imputation.send_json(["kill"])
+
+def test_sequence_to_tensor():
+    t = sequence_to_tensor(test_response)
+    assert t.shape == (len(test_response), 4 + len(test_response[0]["t"]*2*2))
