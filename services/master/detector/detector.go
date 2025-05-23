@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/Ygg-Drasill/DookieFilter/common/pringleBuffer"
+	"github.com/Ygg-Drasill/DookieFilter/common/socket/endpoints"
 	"github.com/Ygg-Drasill/DookieFilter/common/types"
 	"github.com/Ygg-Drasill/DookieFilter/services/master/worker"
 	zmq "github.com/pebbe/zmq4"
@@ -15,17 +16,19 @@ import (
 type Worker struct {
 	worker.BaseWorker
 
-	socketListen     *zmq.Socket
-	socketImputation *zmq.Socket
-	socketStorage    *zmq.Socket
+	socketListen       *zmq.Socket
+	socketImputation   *zmq.Socket
+	socketStorage      *zmq.Socket
+	imputationEndpoint string
 
 	stateBuffer *pringleBuffer.PringleBuffer[types.SmallFrame]
 }
 
 func New(ctx *zmq.Context, options ...func(worker *Worker)) *Worker {
 	w := &Worker{
-		BaseWorker:  worker.NewBaseWorker(ctx, "detector"),
-		stateBuffer: pringleBuffer.New[types.SmallFrame](10),
+		BaseWorker:         worker.NewBaseWorker(ctx, "detector"),
+		stateBuffer:        pringleBuffer.New[types.SmallFrame](10),
+		imputationEndpoint: endpoints.TcpEndpoint(endpoints.IMPUTATION),
 	}
 	for _, opt := range options {
 		opt(w)
@@ -310,9 +313,10 @@ func (w *Worker) detectHoles(frame types.SmallFrame) {
 		if !currentPlayers[playerId] {
 			// Since we don't have number and home info in SmallFrame,
 			// we'll use the PlayerId as the number and determine home based on position
+			num, _ := types.DeSKey(playerId)
 			msgData := holeMessage{
 				FrameIdx:     frame.FrameIdx,
-				PlayerNumber: playerId,
+				PlayerNumber: num,
 				Home:         true, // In the test, we're removing from home players
 			}
 

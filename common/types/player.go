@@ -9,9 +9,9 @@ import (
 )
 
 type SmallFrame struct {
-	FrameIdx int			`json:"frameIdx"`
-	Players  []PlayerPosition	`json:"players"`
-	Ball     Position		`json:"ball"`
+	FrameIdx int              `json:"frameIdx"`
+	Players  []PlayerPosition `json:"players"`
+	Ball     Position         `json:"ball"`
 }
 
 type Position struct {
@@ -30,9 +30,9 @@ func NewPlayerKey(num int, home bool) PlayerKey {
 
 type PlayerPosition struct {
 	Position
-	FrameIdx  int	`json:"frameIdx"`
-	PlayerNum int	`json:"number"`
-	Home      bool	`json:"home"`
+	FrameIdx  int  `json:"frameIdx"`
+	PlayerNum int  `json:"number"`
+	Home      bool `json:"home"`
 }
 
 func (pp PlayerPosition) Key() pringleBuffer.Key {
@@ -41,6 +41,16 @@ func (pp PlayerPosition) Key() pringleBuffer.Key {
 
 func (pp PlayerPosition) SKey() string {
 	return fmt.Sprintf("%d:%t", pp.PlayerNum, pp.Home)
+}
+
+func DeSKey(k string) (int, bool) {
+	x := strings.Split(k, ":")
+	n, err := strconv.Atoi(x[0])
+	if err != nil {
+		return 0, false
+	}
+	h, err := strconv.ParseBool(x[1])
+	return n, h
 }
 
 func (frame SmallFrame) Key() pringleBuffer.Key {

@@ -31,7 +31,7 @@ func (w *Worker) connect() error {
 		return err
 	}
 
-	err = w.socketImputation.Connect("tcp://127.0.0.1:5555")
+	err = w.socketImputation.Connect(w.imputationEndpoint)
 	if err != nil {
 		return err
 	}
