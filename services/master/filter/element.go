@@ -16,8 +16,10 @@ func (f *filterableFrame) Update(key string, value float64) error {
 		if player.Home == h && player.PlayerNum == n {
 			if x {
 				f.Players[i].X = value
+				return nil
 			} else {
 				f.Players[i].Y = value
+				return nil
 			}
 		}
 	}
@@ -77,5 +79,5 @@ func decodeKey(key string) (bool, int, bool) {
 }
 
 func newSavGolFilter() *savGolFilter {
-	return &savGolFilter{filter.New(filter.SavGolFilter[*filterableFrame](), Keys())}
+	return &savGolFilter{filter.New(filter.SavGolFilter[*filterableFrame](), Keys(), 5)}
 }

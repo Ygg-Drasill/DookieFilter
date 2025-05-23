@@ -20,10 +20,10 @@ func addNoise(v float64, scale float64) float64 {
 }
 
 func sin(i int) float64 {
-	return math.Sin(float64(i)/framesCount) * 10
+	return math.Sin(float64(i)/float64(framesCount)*math.Pi*4+math.Pi/2) * 2
 }
 
-const framesCount = 10
+const framesCount = 100
 
 func Test_FilterWorker(t *testing.T) {
 	ctx, err := zmq.NewContext()
@@ -45,15 +45,18 @@ func Test_FilterWorker(t *testing.T) {
 
 	frames := make([]types.Frame, framesCount)
 	frames[0] = testutils.RandomFrame(3, 3)
-	//pNum := frames[0].HomePlayers[0].Number
-	frames[0].HomePlayers[0].Xyz = []float64{
-		addNoise(sin(0), 2),
-		addNoise(sin(0), 2)}
 	for i := 1; i < framesCount; i++ {
 		frames[i] = testutils.RandomNextFrame(frames[i-1])
+	}
+
+	for i := range frames {
 		frames[i].HomePlayers[0].Xyz = []float64{
 			addNoise(sin(i), 2),
 			addNoise(sin(i), 2)}
+	}
+
+	for i := range framesCount - 2 {
+		assert.NotEqual(t, frames[i].HomePlayers[0].Xyz[0], frames[i+1].HomePlayers[0].Xyz[0])
 	}
 
 	smallFrames := make([]types.SmallFrame, framesCount)
@@ -67,7 +70,7 @@ func Test_FilterWorker(t *testing.T) {
 	}
 
 	filteredFrames := make([]types.SmallFrame, framesCount)
-	for i := range framesCount {
+	for i := range 80 {
 		msg, _ := outputSocket.RecvMessage(0)
 		frame := types.SmallFrame{}
 		err = json.Unmarshal([]byte(strings.Join(msg[1:], "")), &frame)
@@ -77,14 +80,14 @@ func Test_FilterWorker(t *testing.T) {
 	rawErrorX, filterErrorX := .0, .0
 	rawErrorY, filterErrorY := .0, .0
 
-	for i := range framesCount - 1 {
+	for i := range 80 {
 		assert.Equal(t, smallFrames[i].Players[0].PlayerNum, filteredFrames[i].Players[0].PlayerNum, "Player order should not change")
 
 		cleanSignal := sin(i)
 		rawErrorX += math.Abs(cleanSignal - smallFrames[i].Players[0].X)
 		rawErrorY += math.Abs(cleanSignal - smallFrames[i].Players[0].Y)
 		filterErrorX += math.Abs(cleanSignal - filteredFrames[i].Players[0].X)
-		filterErrorY += math.Abs(cleanSignal - filteredFrames[i].Players[0].X)
+		filterErrorY += math.Abs(cleanSignal - filteredFrames[i].Players[0].Y)
 	}
 
 	assert.Less(t, filterErrorX, rawErrorX, "Error from X should improve after filter")
