@@ -154,12 +154,7 @@ func (w *Worker) decide(
 				}
 				break
 			}
-			/*q, _ := w.stateBuffer.Get(pringleBuffer.Key(f.FrameIdx - 1))
-			var prevFramePos types.Position
-			if len(q.Players) >= i {
-				prevFramePos = q.Players[i].Position
-			}*/
-			w.Logger.Debug("Found swapped player", "key", f.SKey(), "player", frame.Players[i].Position, "pfPos", "prevFramePos")
+			w.Logger.Debug("Found swapped player", "key", f.SKey(), "player", frame.Players[i].Position)
 			frame.Players[i].Position = p[key][f.FrameIdx].Position
 			swappers[key] = false
 			w.Logger.Debug("swapped", "key", f.SKey(), "player", frame.Players[i].Position)
