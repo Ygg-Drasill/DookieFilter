@@ -19,6 +19,7 @@ func TestStorageWorker(t *testing.T) {
 	const teamSize = 11
 	const endpoint = "inproc://test"
 	const nPlayerCount = 3
+
 	ctx, err := zmq.NewContext()
 	assert.NoError(t, err)
 	wg := &sync.WaitGroup{}
@@ -38,22 +39,23 @@ func TestStorageWorker(t *testing.T) {
 	assert.NoError(t, outputSocket.Connect(endpoint))
 
 	frames := testutils.RandomFrameRange(teamSize, frameCount)
+	assert.Equal(t, frameCount, len(frames))
 	for _, frame := range frames {
 		n, err := inputSocket.SendMessage("frame", types.SerializeFrame(types.SmallFromBigFrame(frame)))
 		assert.Greater(t, n, 0)
 		assert.NoError(t, err)
 	}
 
-	time.Sleep(time.Millisecond * 200)
+	time.Sleep(time.Second)
 
 	assert.Equal(t, teamSize*2, len(worker.players))
 	expectedSize := int(math.Max(float64(worker.bufferSize), float64(frameCount)))
 	playerKeys := make([]types.PlayerKey, len(worker.players))
 
 	i := 0
-	for pNum, buffer := range worker.players {
-		assert.Equal(t, expectedSize, buffer.Count(), "player buffer %d should have size %d", pNum, expectedSize)
-		playerKeys[i] = pNum
+	for pKey, buffer := range worker.players {
+		assert.Equal(t, expectedSize, buffer.Count(), "player buffer %t_%d should have size %d", pKey.Home, pKey.PlayerNumber, expectedSize)
+		playerKeys[i] = pKey
 		i++
 	}
 

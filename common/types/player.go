@@ -9,9 +9,9 @@ import (
 )
 
 type SmallFrame struct {
-	FrameIdx int
-	Players  []PlayerPosition
-	Ball     Position
+	FrameIdx int			`json:"frameIdx"`
+	Players  []PlayerPosition	`json:"players"`
+	Ball     Position		`json:"ball"`
 }
 
 type Position struct {
@@ -30,9 +30,9 @@ func NewPlayerKey(num int, home bool) PlayerKey {
 
 type PlayerPosition struct {
 	Position
-	FrameIdx  int
-	PlayerNum int
-	Home      bool
+	FrameIdx  int	`json:"frameIdx"`
+	PlayerNum int	`json:"number"`
+	Home      bool	`json:"home"`
 }
 
 func (pp PlayerPosition) Key() pringleBuffer.Key {

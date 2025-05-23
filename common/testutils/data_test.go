@@ -10,9 +10,13 @@ func TestRandomMove(t *testing.T) {
 	beforeMove := randomPosition()
 	afterMove := make([]float64, len(beforeMove))
 	copy(afterMove, beforeMove)
-	assert.Equal(t, beforeMove, afterMove, "Expected before and after move to be same position without movement")
+	for i := range afterMove {
+		assert.Equal(t, beforeMove[i], afterMove[i], "Expected before and after move to be same position without movement")
+	}
 	randomMove(afterMove)
-	assert.NotEqual(t, beforeMove, afterMove, "Expected position to change after movement")
+	for i := range afterMove {
+		assert.NotEqual(t, beforeMove[i], afterMove[i], "Expected position to change after movement")
+	}
 }
 
 func TestRandomPosition(t *testing.T) {
@@ -22,9 +26,22 @@ func TestRandomPosition(t *testing.T) {
 }
 
 func TestRandomNextFrame(t *testing.T) {
-	before := RandomFrame(3, 3)
+	pCount := 3
+	before := RandomFrame(pCount, pCount)
 	after := RandomNextFrame(before)
-	assert.NotEqual(t, before, after, "Expected after frame to change from before frame")
+	for i := range pCount {
+		homePosBefore := before.HomePlayers[i].Xyz
+		homePosAfter := after.HomePlayers[i].Xyz
+		assert.NotEqual(t, homePosBefore[0], homePosAfter[0], "Expected after frame to change from before frame")
+		assert.NotEqual(t, homePosBefore[1], homePosAfter[1], "Expected after frame to change from before frame")
+
+		awayPosBefore := before.AwayPlayers[i].Xyz
+		awayPosAfter := after.AwayPlayers[i].Xyz
+		assert.NotEqual(t, awayPosBefore[0], awayPosAfter[0], "Expected after frame to change from before frame")
+		assert.NotEqual(t, awayPosBefore[1], awayPosAfter[1], "Expected after frame to change from before frame")
+	}
+
+	assert.Equal(t, before.FrameIdx+1, after.FrameIdx, "After frame should have same frame idx")
 }
 
 func TestPopRandom(t *testing.T) {

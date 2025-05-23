@@ -23,18 +23,26 @@ const (
 	// DETECTOR
 	//PUSH/PULL binds on detector worker
 	DETECTOR SocketEndpoint = "detection"
+
+	// FILTER
+	//PUSH/PULL binds on filter worker
+	FILTER_INPUT SocketEndpoint = "filter"
 )
 
 var (
 	// STORAGE_API
 	//REQ/REP binds on storage worker
 	//Like
-	STORAGE_API ExternalSocketEndpoint
+	STORAGE_API   ExternalSocketEndpoint
+	FILTER_OUTPUT ExternalSocketEndpoint
 )
+
 
 func init() {
 	STORAGE_API = ExternalSocketEndpoint(
 		fmt.Sprintf("127.0.0.1:%d", 5555)) //TODO: read from environment
+	FILTER_OUTPUT = ExternalSocketEndpoint(
+		fmt.Sprintf("127.0.0.1:%d", 5556)) //TODO: read from environment
 }
 
 // InProcessEndpoint returns an endpoint string using the inproc:// protocol

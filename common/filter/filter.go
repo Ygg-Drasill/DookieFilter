@@ -5,23 +5,25 @@ package filter
 
 // FilterFunction is a function that applies a filter to a slice of type FilterableElement.
 type FilterFunction[TElement FilterableElement] func(Interface[TElement], []TElement) []TElement
+type KeysFunction[TElement FilterableElement] func(f *Filter[TElement]) []string
 
-type filter[TElement FilterableElement] struct {
+type Filter[TElement FilterableElement] struct {
 	FilterFunction FilterFunction[TElement]
+	KeysFunction   func(f *Filter[TElement]) []string
 	Elements       []TElement
 	size           int
 	full           bool
 }
 
-func (f *filter[TElement]) Keys() []string {
-	return []string{"x"}
-}
-
-func (f *filter[TElement]) Size() int {
+func (f *Filter[TElement]) Size() int {
 	return f.size
 }
 
-func (f *filter[TElement]) Step(element TElement) (*TElement, FilterError) {
+func (f *Filter[TElement]) Keys() []string {
+	return f.KeysFunction(f)
+}
+
+func (f *Filter[TElement]) Step(element TElement) (*TElement, FilterError) {
 	f.Elements = append(f.Elements, element)
 	if !f.full && len(f.Elements) < f.size {
 		return nil, NotFullError{}
@@ -32,4 +34,14 @@ func (f *filter[TElement]) Step(element TElement) (*TElement, FilterError) {
 	poppedElement := &(f.Elements[0])
 	f.Elements = f.Elements[1:]
 	return poppedElement, nil
+}
+
+func New[TElement FilterableElement](fFilter FilterFunction[TElement], fKeys KeysFunction[TElement], size int) Filter[TElement] {
+	return Filter[TElement]{
+		FilterFunction: fFilter,
+		KeysFunction:   fKeys,
+		Elements:       make([]TElement, 0),
+		size:           size,
+		full:           false,
+	}
 }
