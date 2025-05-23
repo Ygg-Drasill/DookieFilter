@@ -46,7 +46,7 @@ func TestStorageWorker(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	time.Sleep(time.Millisecond * 10000)
+	time.Sleep(time.Second)
 
 	assert.Equal(t, teamSize*2, len(worker.players))
 	expectedSize := int(math.Max(float64(worker.bufferSize), float64(frameCount)))

@@ -40,6 +40,8 @@ func TestRandomNextFrame(t *testing.T) {
 		assert.NotEqual(t, awayPosBefore[0], awayPosAfter[0], "Expected after frame to change from before frame")
 		assert.NotEqual(t, awayPosBefore[1], awayPosAfter[1], "Expected after frame to change from before frame")
 	}
+
+	assert.Equal(t, before.FrameIdx+1, after.FrameIdx, "After frame should have same frame idx")
 }
 
 func TestPopRandom(t *testing.T) {
