@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/Ygg-Drasill/DookieFilter/common/pringleBuffer"
 	"github.com/Ygg-Drasill/DookieFilter/common/types"
@@ -11,8 +12,8 @@ import (
 )
 
 const (
-	REQ_PLAYER_FRAME = "playerFrame"
-	REQ_FRAME_RANGE  = "frameRange"
+	REQ_PLAYER_FRAME        = "playerFrame"
+	REQ_FRAME_RANGE_NEAREST = "frameRangeNearest"
 )
 
 func (w *Worker) listenConsume(wg *sync.WaitGroup) {
@@ -31,15 +32,16 @@ func (w *Worker) listenConsume(wg *sync.WaitGroup) {
 			frame := types.DeserializeFrame(strings.Join(message, ""))
 			for _, player := range frame.Players {
 				w.mutex.Lock()
-				buffer, ok := w.players[player.PlayerId]
+				key := types.NewPlayerKey(player.PlayerNum, player.Home)
+				buffer, ok := w.players[key]
 				if !ok {
 					playerBuffer := *pringleBuffer.New[types.PlayerPosition](w.bufferSize)
-					w.players[player.PlayerId] = playerBuffer
+					w.players[key] = playerBuffer
 					buffer = playerBuffer
 				}
 
 				buffer.Insert(player)
-				w.players[player.PlayerId] = buffer
+				w.players[key] = buffer
 				w.mutex.Unlock()
 			}
 		}
@@ -62,9 +64,21 @@ func (w *Worker) listenProvide(wg *sync.WaitGroup) {
 		if topic == "playerNumber" {
 
 		}
+	}
+}
 
-		if topic == "frameRange" {
-			w.handleFrameRangeRequest()
+func (w *Worker) listenAPI(wg *sync.WaitGroup) {
+	defer wg.Done()
+	for {
+		data, err := w.socketAPI.RecvMessage(0)
+		topic := data[0]
+		if err != nil {
+			w.Logger.Error("Failed to read topic from message", "error", err, "topic", topic)
+			return
+		}
+		message := strings.Join(data[1:], "")
+		if topic == REQ_FRAME_RANGE_NEAREST {
+			w.handleFrameRangeNearestRequest(message)
 		}
 	}
 }
@@ -77,21 +91,24 @@ func (w *Worker) handlePlayerFrameRequest() {
 	}
 	message := strings.Join(messageParts, "")
 	frameIndexAndPlayerId := strings.Split(message, ":")
-	frameIndexRaw, playerId := frameIndexAndPlayerId[0], frameIndexAndPlayerId[1]
-	w.Logger.Debug("Handling storage request", "type", REQ_PLAYER_FRAME, "frameIndex", frameIndexRaw, "playerId", playerId)
+	frameIndexRaw, playerNumRaw, homeRaw := frameIndexAndPlayerId[0], frameIndexAndPlayerId[1], frameIndexAndPlayerId[2]
+	w.Logger.Debug("Handling storage request", "type", REQ_PLAYER_FRAME, "frameIndex", frameIndexRaw, "playerNum", playerNumRaw, "home", homeRaw)
 
 	frameIndex, err := strconv.Atoi(frameIndexRaw)
+	playerNum, err := strconv.Atoi(playerNumRaw)
+	home, err := strconv.ParseBool(homeRaw)
+
 	if err != nil {
 		w.Logger.Error("Failed to convert frame index to int", "error", err)
 		w.respondEmpty()
 		return
 	}
 	w.mutex.Lock()
-	playerBuffer := w.players[playerId]
-	w.mutex.Unlock()
+	playerBuffer := w.players[types.NewPlayerKey(playerNum, home)]
 	position, err := playerBuffer.Get(pringleBuffer.Key(frameIndex))
+	w.mutex.Unlock()
 	if err != nil {
-		w.Logger.Error("Failed to get position", "frameIndex", frameIndex, "playerId", playerId, "error", err)
+		w.Logger.Error("Failed to get position", "frameIndex", frameIndex, "playerNum", playerNum, "home", home, "error", err)
 		w.respondEmpty()
 		return
 	}
@@ -106,16 +123,28 @@ func (w *Worker) handlePlayerFrameRequest() {
 	}
 }
 
-func (w *Worker) handleFrameRangeRequest() {
-	messageParts, err := w.socketProvide.RecvMessage(0)
+func (w *Worker) handleFrameRangeNearestRequest(message string) {
+	request := FrameRangeNearestRequest{}
+	err := json.Unmarshal([]byte(message), &request)
 	if err != nil {
-		w.Logger.Error("Failed to receive request", "type", REQ_FRAME_RANGE, "error", err)
-		return
+		w.Logger.Error("Failed to unmarshal request", "error", err)
 	}
-	message := strings.Join(messageParts, "")
-	fmt.Println(message) //TODO: implement
+	response := make(FrameRangeNearestResponse, request.EndIndex-request.StartIndex+1)
+	for i := request.StartIndex; i <= request.EndIndex; i++ {
+		response[i-request.StartIndex] = w.findNearestPlayers(i, request.NearestCount, request.TargetPlayer)
+	}
+
+	responseData, err := json.Marshal(response)
+	if err != nil {
+		w.Logger.Error("Failed to marshal response", "error", err)
+	}
+
+	_, err = w.socketAPI.SendMessage(responseData)
 }
 
 func (w *Worker) respondEmpty() {
-	w.socketProvide.Send("", 0)
+	_, err := w.socketProvide.Send("", 0)
+	if err != nil {
+		w.Logger.Error("Failed to send empty message", "error", err)
+	}
 }
