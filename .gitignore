@@ -5,3 +5,4 @@
 *__pycache__
 prediction/gym/runs/player
 data
+*/vendor

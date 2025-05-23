@@ -14,6 +14,8 @@ type PringleBuffer[TElement PringleIndexable] struct {
 	tail  *PringleElement[TElement]
 	Size  int
 	count int
+
+	onTailPop func(TElement)
 }
 
 func New[TElement PringleIndexable](size int) *PringleBuffer[TElement] {
@@ -47,6 +49,11 @@ func (pb *PringleBuffer[TElement]) Insert(data TElement) {
 		prev, next = next, next.next
 	}
 
+	if next != nil && next.Key() == newElement.Key() {
+		next.data = data
+		return
+	}
+
 	//insert not full
 	if !full {
 		pb.count++
@@ -60,17 +67,20 @@ func (pb *PringleBuffer[TElement]) Insert(data TElement) {
 	}
 
 	pb.insertBetween(prev, next, newElement)
-	pb.trimTail()
+	pb.popTail()
 }
 
 func (pb *PringleBuffer[TElement]) Get(key Key) (TElement, error) {
 	var empty TElement
 	var element *PringleElement[TElement]
 	current := pb.head
+	if current == nil {
+		return empty, EmptyError{}
+	}
 	for current.Key() != key {
 		current = current.next
 		if current == nil {
-			return empty, PringleBufferError{msg: "element does not exist"}
+			return empty, NotFoundError{key: key}
 		}
 	}
 	element = current
@@ -98,8 +108,12 @@ func (pb *PringleBuffer[TElement]) insertBetween(prev, next, element *PringleEle
 	element.prev = prev
 }
 
-func (pb *PringleBuffer[TElement]) trimTail() {
+func (pb *PringleBuffer[TElement]) popTail() {
 	tail := pb.tail
 	pb.tail = tail.prev
 	pb.tail.next = nil
+
+	if pb.onTailPop != nil {
+		pb.onTailPop(pb.head.data)
+	}
 }

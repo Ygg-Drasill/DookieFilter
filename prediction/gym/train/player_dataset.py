@@ -9,33 +9,42 @@ import torch
 from torch.utils.data import Dataset, ConcatDataset
 from tqdm import tqdm
 
-from gym.utils.data import *
+from utils.data import *
 
 
 class PlayerDataset(Dataset):
-    def __init__(self, path: str, sequence_length: int, n_nearest_players: int):
+    def __init__(self, path: str, sequence_length: int, target_player_key: str, n_nearest_players: int):
         self.raw_dataframe = pd.read_csv(path)
         self.frame_index = self.raw_dataframe.pop("frame_index")
-        self.partition_size = len(self.frame_index)
         self.sequence_length = sequence_length
         self.n_nearest_players = n_nearest_players
+        self.player_numbers = []
 
         ball = np.array([[x, y] for x, y in zip(self.raw_dataframe.pop("ball_x"),
                                                 self.raw_dataframe.pop("ball_y"))])
+        self.player = np.array([[x, y] for x, y in zip(self.raw_dataframe.pop(target_player_key + "_x"),
+                                                  self.raw_dataframe.pop(target_player_key + "_y"))])
 
-        self.player_numbers = list(set([k[:-2] for k in self.raw_dataframe.keys()]))
+        self.player_numbers = set([k[:-2] for k in self.raw_dataframe.keys()])
 
-        self.data = {}
+        other_players = {}
+        for player_number in self.player_numbers:
+            other_players[player_number] = np.column_stack([self.raw_dataframe[player_number + "_x"],
+                                                            self.raw_dataframe[player_number + "_y"]])
+
+        self.data = []
         pos: tuple[int, int]
         ball: np.ndarray[tuple[int, int]]
-
-        for player_number in self.player_numbers:
-            player = np.array([[x, y] for x, y in zip(self.raw_dataframe.get(player_number + "_x"),
-                                                  self.raw_dataframe.get(player_number + "_y"))])
-            other_players = {}
-            for num in self.player_numbers:
-                if num is player_number:
+        for i, pos in enumerate(tqdm(self.player,
+                                     unit="row",
+                                     desc="calculating rows for " + target_player_key,
+                                     ncols=200)):
+            home_distances, away_distances = [], []
+            for key, coords in other_players.items():
+                other_coords = np.array(coords[i])
+                if np.isnan(other_coords).any():
                     continue
+
                 other_players[num] = np.column_stack([self.raw_dataframe.get(player_number + "_x"),
                                                                 self.raw_dataframe.get(player_number + "_y")])
 
@@ -92,6 +101,7 @@ class PlayerDataset(Dataset):
         seq = self.data[player_number][no_padding_idx:no_padding_idx + self.sequence_length]
         target = player[no_padding_idx + self.sequence_length]
         target_normalized = [target[0], target[1]]
+
         return (torch.from_numpy(np.array(seq)).to(dtype=torch.float32),
                 torch.from_numpy(np.array(target_normalized)).to(dtype=torch.float32))
 

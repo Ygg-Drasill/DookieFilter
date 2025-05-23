@@ -1,9 +1,10 @@
 import math
 import os.path
-from typing import Generator
 
+import numpy as np
 import pandas as pd
 import torch
+from matplotlib import pyplot as plt
 from torch import nn
 from torch.utils.data import DataLoader, ConcatDataset, Dataset
 from torch.utils.tensorboard import SummaryWriter
@@ -46,8 +47,11 @@ def init():
 
     export_directory = os.path.abspath(f'../runs')
 
+if __name__ == '__main__':
     torch.random.seed()
     dataset_split_ratio = 0.8
+    batch_size = 64
+    n_nearest_players = 3
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     chunk_path = os.path.abspath("../data") #use all matches later
 
@@ -98,22 +102,13 @@ def train_model(
     validation_loss_low = float(math.inf)
     train_loss_low = float(math.inf)
     for epoch in range(epochs):
-        train_loss += train_epoch(epoch,
-                                  epochs,
-                                  model,
-                                  train_dataloader,
-                                  loss_function,
-                                  optimizer,
-                                  device,
-                                  training_logger)
-        validation_loss += validate_epoch(epoch,
-                                          epochs,
-                                          model,
-                                          validation_dataloader,
-                                          loss_function,
-                                          device,
-                                          validation_logger)
+        tl = train_epoch(epoch, epochs, model, train_dataloader, loss_function, optimizer, device)
+        vl = validate_epoch(epoch, epochs, model, validation_dataloader, loss_function, device)
+        if epoch == 0: continue
+        train_losses.append(tl)
+        validation_losses.append(vl)
 
+    torch.save(model.state_dict(), os.path.abspath("./model.pth"))
 
         model_name = format_model_name(n_nearest, stack_size, hidden_size, lr, epochs, batch_size, n_parameters)
         model_path = f'{export_directory}/models/{model_name}.pt'
