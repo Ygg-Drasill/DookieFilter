@@ -52,6 +52,16 @@ func RandomFrame(awayPlayers, homePlayers int) types.Frame {
 		WallClock: int64(rand.Uint64()),
 	}
 
+	awayNumbers := make([]int, awayPlayers)
+	homeNumbers := make([]int, homePlayers)
+
+	for i := range awayNumbers {
+		awayNumbers[i] = i
+	}
+	for i := range homeNumbers {
+		homeNumbers[i] = i
+	}
+
 	for i := range awayPlayers {
 		var num int
 		awayNumbers, num = popRandom(awayNumbers)
