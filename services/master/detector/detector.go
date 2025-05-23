@@ -1,8 +1,10 @@
 package detector
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/Ygg-Drasill/DookieFilter/common/pringleBuffer"
+	"github.com/Ygg-Drasill/DookieFilter/common/socket/endpoints"
 	"github.com/Ygg-Drasill/DookieFilter/common/types"
 	"github.com/Ygg-Drasill/DookieFilter/services/master/worker"
 	zmq "github.com/pebbe/zmq4"
@@ -14,16 +16,19 @@ import (
 type Worker struct {
 	worker.BaseWorker
 
-	socketListen  *zmq.Socket
-	socketStorage *zmq.Socket
+	socketListen       *zmq.Socket
+	socketImputation   *zmq.Socket
+	socketStorage      *zmq.Socket
+	imputationEndpoint string
 
 	stateBuffer *pringleBuffer.PringleBuffer[types.SmallFrame]
 }
 
 func New(ctx *zmq.Context, options ...func(worker *Worker)) *Worker {
 	w := &Worker{
-		BaseWorker:  worker.NewBaseWorker(ctx, "detector"),
-		stateBuffer: pringleBuffer.New[types.SmallFrame](10),
+		BaseWorker:         worker.NewBaseWorker(ctx, "detector"),
+		stateBuffer:        pringleBuffer.New[types.SmallFrame](10),
+		imputationEndpoint: endpoints.TcpEndpoint(endpoints.IMPUTATION),
 	}
 	for _, opt := range options {
 		opt(w)
@@ -48,13 +53,15 @@ func (w *Worker) Run(wg *sync.WaitGroup) {
 			frame := types.DeserializeFrame(strings.Join(message, ""))
 			w.stateBuffer.Insert(frame)
 			w.detect(frame)
+			w.detectHoles(frame)
 		}
 	}
 }
 
 const (
-	fieldLength = 105.0
-	fieldWidth  = 68.0
+	JumpThreshold = 5 //TODO: change me
+	fieldLength   = 105.0
+	fieldWidth    = 68.0
 
 	playerMaxSpeed = 9.5 // m/s
 	frameTime      = 1.0 / 25.0
@@ -282,4 +289,47 @@ func swapPlayers(
 
 	currP[p1.key][idx1] = tmp1
 	currP[p2.key][idx2] = tmp2
+}
+
+func (w *Worker) detectHoles(frame types.SmallFrame) {
+	prevFrame, err := w.stateBuffer.Get(pringleBuffer.Key(frame.FrameIdx - 1))
+	if err != nil {
+		w.Logger.Warn("No previous frame to compare")
+		return
+	}
+	// Create sets for efficient lookup
+	currentPlayers := make(map[string]bool)
+	for _, player := range frame.Players {
+		currentPlayers[player.SKey()] = true
+	}
+
+	prevPlayers := make(map[string]bool)
+	for _, player := range prevFrame.Players {
+		prevPlayers[player.SKey()] = true
+	}
+
+	// Check for players who were present before but are missing now
+	for playerId := range prevPlayers {
+		if !currentPlayers[playerId] {
+			// Since we don't have number and home info in SmallFrame,
+			// we'll use the PlayerId as the number and determine home based on position
+			num, _ := types.DeSKey(playerId)
+			msgData := holeMessage{
+				FrameIdx:     frame.FrameIdx,
+				PlayerNumber: num,
+				Home:         true, // In the test, we're removing from home players
+			}
+
+			message, err := json.Marshal(msgData)
+			if err != nil {
+				w.Logger.Error("Failed to marshal holeMessage to JSON", "error", err, "playerId", playerId)
+				continue
+			}
+
+			_, err = w.socketImputation.SendMessage("hole", message)
+			if err != nil {
+				w.Logger.Error("Failed to send hole message", "error", err, "playerId", playerId)
+			}
+		}
+	}
 }

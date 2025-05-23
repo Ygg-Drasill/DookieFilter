@@ -35,14 +35,16 @@ var (
 	//Like
 	STORAGE_API   ExternalSocketEndpoint
 	FILTER_OUTPUT ExternalSocketEndpoint
+	IMPUTATION    ExternalSocketEndpoint
 )
-
 
 func init() {
 	STORAGE_API = ExternalSocketEndpoint(
 		fmt.Sprintf("127.0.0.1:%d", 5555)) //TODO: read from environment
 	FILTER_OUTPUT = ExternalSocketEndpoint(
 		fmt.Sprintf("127.0.0.1:%d", 5556)) //TODO: read from environment
+	IMPUTATION = ExternalSocketEndpoint(
+		fmt.Sprintf("127.0.0.1:%d", 5557))
 }
 
 // InProcessEndpoint returns an endpoint string using the inproc:// protocol
