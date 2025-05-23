@@ -80,9 +80,11 @@ class ImputationService:
         target_next = prediction.detach().cpu().numpy().squeeze()
         return {"x": denormalize_x(target_next[0].item()), "y": denormalize_y(target_next[1].item())}
 
+
     def store_player_frame(self):
         pass
 
+      
 def sequence_to_tensor(sequence: list[dict[str, typing.Any]]) -> torch.Tensor:
     x = []
     for item in sequence:

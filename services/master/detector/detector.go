@@ -2,13 +2,11 @@ package detector
 
 import (
 	"errors"
-	"fmt"
 	"github.com/Ygg-Drasill/DookieFilter/common/pringleBuffer"
 	"github.com/Ygg-Drasill/DookieFilter/common/types"
 	"github.com/Ygg-Drasill/DookieFilter/services/master/worker"
 	zmq "github.com/pebbe/zmq4"
 	"math"
-	"strconv"
 	"strings"
 	"sync"
 )
@@ -78,65 +76,70 @@ func (w *Worker) detect(frame types.SmallFrame) {
 		return
 	}
 
-	compareMap := make(map[string][]types.PlayerPosition)
+	// Build prev and current maps
+	prevFrameMap := make(map[types.PlayerKey]types.PlayerPosition)
+	currFrameMap := make(map[types.PlayerKey]types.PlayerPosition)
+
 	for _, player := range prevFrame.Players {
-		_, ok := compareMap[player.PlayerId]
-		if ok {
-			player.FrameIdx = prevFrame.FrameIdx
-			compareMap[player.PlayerId][0] = player
-		}
-		if !ok {
-			compareMap[player.PlayerId] = make([]types.PlayerPosition, 2)
-			player.FrameIdx = prevFrame.FrameIdx
-			compareMap[player.PlayerId][0] = player
-		}
+		key := types.NewPlayerKey(player.PlayerNum, player.Home)
+		player.FrameIdx = prevFrame.FrameIdx
+		prevFrameMap[key] = player
 	}
+
 	for _, player := range frame.Players {
-		_, ok := compareMap[player.PlayerId]
-		if ok {
-			player.FrameIdx = frame.FrameIdx
-			compareMap[player.PlayerId][1] = player
-		}
+		key := types.NewPlayerKey(player.PlayerNum, player.Home)
+		player.FrameIdx = frame.FrameIdx
+		currFrameMap[key] = player
+	}
+
+	prevP := make(map[types.PlayerKey]map[int]types.PlayerPosition)
+	currP := make(map[types.PlayerKey]map[int]types.PlayerPosition)
+	totalP := make(map[types.PlayerKey]map[int]types.PlayerPosition)
+	for key, prevPlayer := range prevFrameMap {
+		currPlayer, ok := currFrameMap[key]
 		if !ok {
-			compareMap[player.PlayerId] = make([]types.PlayerPosition, 2)
-			player.FrameIdx = frame.FrameIdx
-			compareMap[player.PlayerId][1] = player
+			continue
+		}
+
+		moveDiff := math.Hypot(
+			prevPlayer.Position.X-currPlayer.Position.X,
+			prevPlayer.Position.Y-currPlayer.Position.Y,
+		)
+		if moveDiff > maxMovePerFrame {
+			w.Logger.Info("Jump detected", "player", key, "moveDiff", moveDiff, "frame", frame.FrameIdx)
+			if _, ok = prevP[key]; !ok {
+				prevP[key] = make(map[int]types.PlayerPosition)
+			}
+			if _, ok = currP[key]; !ok {
+				currP[key] = make(map[int]types.PlayerPosition)
+			}
+			if _, ok = totalP[key]; !ok {
+				totalP[key] = make(map[int]types.PlayerPosition)
+			}
+			prevP[key][prevFrame.FrameIdx] = prevPlayer
+			currP[key][frame.FrameIdx] = currPlayer
+			totalP[key][prevFrame.FrameIdx] = prevPlayer
+			totalP[key][frame.FrameIdx] = currPlayer
 		}
 	}
 
-	var (
-		count       = 0
-		checkPlayer = make(map[string]types.PlayerPosition)
-	)
-	for playerId, values := range compareMap {
-		moveDiff := math.Hypot(
-			values[0].Position.X-values[1].Position.X,
-			values[0].Position.Y-values[1].Position.Y)
-		if moveDiff > maxMovePerFrame {
-			w.Logger.Info("Jump detected", "player_id", playerId, "moveDiff", moveDiff, "frame", frame.FrameIdx)
-			checkPlayer[fmt.Sprintf("%s:%d:0", playerId, prevFrame.FrameIdx)] = values[0]
-			checkPlayer[fmt.Sprintf("%s:%d:1", playerId, frame.FrameIdx)] = values[1]
-		}
-		if count == len(compareMap)-1 && frame.FrameIdx%5 == 0 {
-			if len(checkPlayer) > 1 {
-				w.decide(w.swap(checkPlayer), checkPlayer, &frame)
-				w.stateBuffer.Insert(frame)
-			}
-		}
-		count++
+	if len(currP) > 0 {
+		swappers := w.swap(prevP, currP)
+		w.decide(swappers, currP, &frame)
 	}
+
+	w.stateBuffer.Insert(frame)
 }
 
 func (w *Worker) decide(
-	swappers map[string]bool,
-	p map[string]types.PlayerPosition,
+	swappers map[types.PlayerKey]bool,
+	p map[types.PlayerKey]map[int]types.PlayerPosition,
 	frame *types.SmallFrame) *types.SmallFrame {
 
 	for key, swapped := range swappers {
-		playerId := strings.Split(key, ":")[0]
 		found := false
 		for i, f := range frame.Players {
-			if f.PlayerId != playerId {
+			if types.NewPlayerKey(f.PlayerNum, f.Home) != key {
 				continue
 			}
 			found = true
@@ -146,28 +149,31 @@ func (w *Worker) decide(
 					w.Logger.Error("Failed to get previous frame", "error", err)
 					continue
 				}
-				if clearPlayer(playerId, q) {
+				if clearPlayer(key, q) {
 					break
 				}
-				frame.Players[i].Position = types.Position{X: 0, Y: 0}
 				break
 			}
-			frame.Players[i].Position = p[key].Position
+			w.Logger.Debug("Found swapped player", "key", f.SKey(), "player", frame.Players[i].Position)
+			frame.Players[i].Position = p[key][f.FrameIdx].Position
 			swappers[key] = false
-			w.Logger.Debug("swapped", "key", key, "player", f)
+			w.Logger.Debug("swapped", "key", f.SKey(), "player", frame.Players[i].Position)
 			break
 		}
 		if swapped && !found {
-			addPlayer(frame, p[key])
+			for _, v := range p[key] {
+				addPlayer(frame, v)
+				break
+			}
 		}
 	}
 
 	return frame
 }
 
-func clearPlayer(playerId string, q types.SmallFrame) bool {
+func clearPlayer(key types.PlayerKey, q types.SmallFrame) bool {
 	for _, player := range q.Players {
-		if player.PlayerId == playerId &&
+		if types.NewPlayerKey(player.PlayerNum, player.Home) == key &&
 			player.Position.X == 0 && player.Position.Y == 0 {
 			return true
 		}
@@ -180,55 +186,51 @@ func addPlayer(frame *types.SmallFrame, player types.PlayerPosition) {
 }
 
 type swapPlayer struct {
-	key    string
+	key    types.PlayerKey
 	player types.PlayerPosition
 }
 
-func (w *Worker) swap(p map[string]types.PlayerPosition) (swapped map[string]bool) {
+func (w *Worker) swap(
+	prevP map[types.PlayerKey]map[int]types.PlayerPosition,
+	currP map[types.PlayerKey]map[int]types.PlayerPosition,
+) map[types.PlayerKey]bool {
+
 	var (
-		cf,
-		pf []swapPlayer
-		swappers = make(map[string]bool)
+		pf, cf   []swapPlayer
+		swappers = make(map[types.PlayerKey]bool)
 	)
 
-	for k, player := range p {
-		if player.FrameIdx == 0 {
-			w.Logger.Debug("hole", "key", k, "player", player)
-			q := strings.Split(k, ":")
-			f, err := strconv.Atoi(q[1])
-			if err != nil {
-				w.Logger.Error("Failed to parse frame index", "error", err)
-				continue
-			}
-			player.FrameIdx = f
-			player.PlayerId = q[0]
-			p[k] = player
+	for key, frames := range prevP {
+		for _, player := range frames {
+			pf = append(pf, swapPlayer{key: key, player: player})
+			break // use the first/only frame
 		}
-		if strings.HasSuffix(k, ":0") {
-			pf = append(pf, swapPlayer{key: k, player: player})
-		}
-		if strings.HasSuffix(k, ":1") {
-			cf = append(cf, swapPlayer{key: k, player: player})
+	}
+	for key, frames := range currP {
+		for _, player := range frames {
+			cf = append(cf, swapPlayer{key: key, player: player})
+			swappers[key] = false
+			break
 		}
 	}
 
 	if len(pf) != len(cf) {
-		w.Logger.Error("swap", "error", "Mismatched frame data", "pf", pf, "cf", cf)
+		w.Logger.Error("swap", "error", "Mismatched frame data", "pf", len(pf), "cf", len(cf))
 		return swappers
 	}
 
-	// load swappers
-	for _, s := range cf {
-		swappers[s.key] = false
-	}
 	for _, prev := range pf {
 		for _, curr := range cf {
-			if prev.player.PlayerId != curr.player.PlayerId && positionProximity(prev, curr) {
+
+			if prev.player.SKey() != curr.player.SKey() &&
+				positionProximity(prev, curr) {
+
 				g := getPair(cf, prev)
-				if swappers[curr.key] == true || swappers[g.key] == true {
+				if swappers[curr.key] || swappers[g.key] {
 					continue
 				}
-				swapPlayers(p, curr, g)
+
+				swapPlayers(prevP, currP, curr, g)
 				swappers[curr.key] = true
 				swappers[g.key] = true
 				break
@@ -239,13 +241,13 @@ func (w *Worker) swap(p map[string]types.PlayerPosition) (swapped map[string]boo
 	return swappers
 }
 
-func getPair(players []swapPlayer, m swapPlayer) swapPlayer {
-	for _, p := range players {
-		if p.key != m.key && p.player.PlayerId == m.player.PlayerId {
-			return p
+func getPair(players []swapPlayer, p swapPlayer) swapPlayer {
+	for _, cf := range players {
+		if cf.player.SKey() == p.player.SKey() {
+			return cf
 		}
 	}
-	return m
+	return p
 }
 
 func positionProximity(p1, p2 swapPlayer) bool {
@@ -259,12 +261,25 @@ func positionProximity(p1, p2 swapPlayer) bool {
 }
 
 func swapPlayers(
-	p map[string]types.PlayerPosition,
-	p1, p2 swapPlayer) {
-	tmpI := p1.player
-	tmpJ := p2.player
-	p1.player.Position = tmpJ.Position
-	p2.player.Position = tmpI.Position
-	p[p1.key] = p1.player
-	p[p2.key] = p2.player
+	prevP, currP map[types.PlayerKey]map[int]types.PlayerPosition,
+	p1, p2 swapPlayer,
+) {
+	var idx1, idx2 int
+	for i := range currP[p1.key] {
+		idx1 = i
+		break
+	}
+
+	for i := range currP[p2.key] {
+		idx2 = i
+		break
+	}
+
+	tmp1 := currP[p1.key][idx1]
+	tmp2 := currP[p2.key][idx2]
+
+	tmp1.Position, tmp2.Position = tmp2.Position, tmp1.Position
+
+	currP[p1.key][idx1] = tmp1
+	currP[p2.key][idx2] = tmp2
 }
