@@ -85,7 +85,7 @@ def run(path):
             current_chunk.add_frame(seperated_frame)
 
     sub_chunks = []
-    active_chunks = sorted(chunks, key=lambda c: c.count)[-2:]
+    active_chunks = sorted(chunks, key=lambda c: c.frameCount)[-2:]
     print(len(active_chunks))
 
     for i, chunk in enumerate(active_chunks):
@@ -93,7 +93,7 @@ def run(path):
         for sub in chunk.filter():
             sub_chunks.append(sub)
 
-    sub_chunks = [x for x in sub_chunks if x.count >= 50]
+    sub_chunks = [x for x in sub_chunks if x.frameCount >= 50]
 
     print(f"found chunks: {len(sub_chunks)}")
     for i, chunk in enumerate(tqdm(sub_chunks, desc="writing chunks to disk")):

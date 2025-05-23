@@ -2,15 +2,14 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from torch import nn
-from typing import Callable
 
 from gym.board_logger import BoardLogger
+from gym.utils.data import denormalize_x, m_to_cm, denormalize_y
 
 progress_bar_columns = 200
 
-LOSS_SCALE = 1
-LOSS_MOVEMENT_SCALE = 0.1
-LOSS_ANGLE_SCALE = 0.1
+LOSS_MOVEMENT_SCALE = 0.01
+LOSS_ANGLE_SCALE = 0.01
 
 MIN_MOVEMENT_THRESHOLD = 0.5
 
@@ -48,8 +47,12 @@ def train_epoch(epoch: int,
         cos_similarity = torch.nn.functional.cosine_similarity(prev_delta, delta)
         angle_penalty = 1 - cos_similarity.mean()
 
-        loss = torch.nn.functional.mse_loss(output, batch_y)
-        #loss = loss + low_movement_penalty * LOSS_MOVEMENT_SCALE# + angle_penalty * LOSS_ANGLE_SCALE
+        out_x = output[:, 0]
+        out_y = output[:, 1]
+        output = torch.stack((denormalize_x(out_x), denormalize_y(out_y)), dim=1)
+
+        loss = loss_function(output, batch_y)
+        #loss = loss + low_movement_penalty * LOSS_MOVEMENT_SCALE + angle_penalty * LOSS_ANGLE_SCALE
 
         running_loss += loss.item()
         total += 1
@@ -87,13 +90,18 @@ def validate_epoch(epoch: int,
         #    print(batch_index, batch_x, batch_y)
         with torch.no_grad():
             output, _ = model(batch_x)
-            if torch.isnan(output).any() or torch.isnan(batch_y).any():
-                continue
-            loss = loss_function(output, batch_y)
-            running_loss += (loss.item()*LOSS_SCALE)
+            out_x = output[:, 0]
+            out_y = output[:, 1]
+            output = torch.stack((m_to_cm(denormalize_x(out_x)), m_to_cm(denormalize_y(out_y))), dim=1)
+
+            truth_x = batch_y[:, 0]
+            truth_y = batch_y[:, 1]
+            truth = torch.stack((m_to_cm(truth_x), m_to_cm(truth_y)), dim=1)
+            loss = torch.nn.functional.l1_loss(output, truth)
+            running_loss += loss.item()
             total += 1
         avg_loss_across_batches = running_loss / total
-        progress_dataloader.set_postfix({'loss': avg_loss_across_batches})
+        progress_dataloader.set_postfix({'avg deviation': avg_loss_across_batches})
         if board_logger is not None:
-            board_logger.log("Loss/test", loss)
+            board_logger.log("Average Deviation (cm)", loss)
     return running_loss / total

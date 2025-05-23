@@ -3,29 +3,44 @@ package types
 import (
 	"fmt"
 	"github.com/Ygg-Drasill/DookieFilter/common/pringleBuffer"
+	"log/slog"
 	"strconv"
 	"strings"
 )
 
 type SmallFrame struct {
-	FrameIdx int
-	Players  []PlayerPosition
-	Ball     Position
+	FrameIdx int			`json:"frameIdx"`
+	Players  []PlayerPosition	`json:"players"`
+	Ball     Position		`json:"ball"`
 }
 
 type Position struct {
-	X float64
-	Y float64
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+}
+
+type PlayerKey struct {
+	PlayerNumber int  `json:"playerNumber"`
+	Home         bool `json:"home"`
+}
+
+func NewPlayerKey(num int, home bool) PlayerKey {
+	return PlayerKey{num, home}
 }
 
 type PlayerPosition struct {
 	Position
-	FrameIdx int
-	PlayerId string
+	FrameIdx  int	`json:"frameIdx"`
+	PlayerNum int	`json:"number"`
+	Home      bool	`json:"home"`
 }
 
 func (pp PlayerPosition) Key() pringleBuffer.Key {
 	return pringleBuffer.Key(pp.FrameIdx)
+}
+
+func (pp PlayerPosition) SKey() string {
+	return fmt.Sprintf("%d:%t", pp.PlayerNum, pp.Home)
 }
 
 func (frame SmallFrame) Key() pringleBuffer.Key {
@@ -48,19 +63,25 @@ func SmallFromBigFrame(frame Frame) SmallFrame {
 	}
 
 	for _, player := range frame.HomePlayers {
-		smallFrame.Players = append(smallFrame.Players, PositionFromPlayer(player, frame.FrameIdx))
+		smallFrame.Players = append(smallFrame.Players, PositionFromPlayer(player, frame.FrameIdx, true))
 	}
 	for _, player := range frame.AwayPlayers {
-		smallFrame.Players = append(smallFrame.Players, PositionFromPlayer(player, frame.FrameIdx))
+		smallFrame.Players = append(smallFrame.Players, PositionFromPlayer(player, frame.FrameIdx, false))
 	}
 
 	return smallFrame
 }
 
-func PositionFromPlayer(player Player, frameIdx int) PlayerPosition {
+func PositionFromPlayer(player Player, frameIdx int, home bool) PlayerPosition {
+	number, err := strconv.Atoi(player.Number)
+	if err != nil {
+		slog.Error("Failed to convert player number to int", "error", err)
+		return PlayerPosition{}
+	}
 	return PlayerPosition{
-		FrameIdx: frameIdx,
-		PlayerId: player.PlayerId,
+		FrameIdx:  frameIdx,
+		PlayerNum: number,
+		Home:      home,
 		Position: Position{
 			X: player.Xyz[0],
 			Y: player.Xyz[1],
@@ -73,7 +94,11 @@ func SerializeFrame(frame SmallFrame) string {
 	parts := make([]string, len(frame.Players))
 
 	for i, player := range frame.Players {
-		playerData := fmt.Sprintf("%s;%g;%g", player.PlayerId, player.X, player.Y)
+		playerData := fmt.Sprintf("%d;%t;%g;%g",
+			player.PlayerNum,
+			player.Home,
+			player.X,
+			player.Y)
 		parts[i] = playerData
 	}
 
@@ -105,11 +130,14 @@ func DeserializeFrame(data string) SmallFrame {
 		frame.Players = make([]PlayerPosition, len(allPlayersData))
 		for i, playerPart := range allPlayersData {
 			playerData := strings.Split(playerPart, ";")
-			x, _ := strconv.ParseFloat(playerData[1], 64)
-			y, _ := strconv.ParseFloat(playerData[2], 64)
+			x, _ := strconv.ParseFloat(playerData[2], 64)
+			y, _ := strconv.ParseFloat(playerData[3], 64)
+			playerNumber, _ := strconv.Atoi(playerData[0])
+			home, _ := strconv.ParseBool(playerData[1])
 			player := PlayerPosition{
-				FrameIdx: frameIdx,
-				PlayerId: playerData[0],
+				FrameIdx:  frameIdx,
+				PlayerNum: playerNumber,
+				Home:      home,
 				Position: Position{
 					X: x,
 					Y: y,
