@@ -15,13 +15,13 @@ type SmallFrame struct {
 }
 
 type Position struct {
-	X float64	`json:"x"`
-	Y float64	`json:"y"`
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
 }
 
 type PlayerKey struct {
-	PlayerNumber int
-	Home         bool
+	PlayerNumber int  `json:"playerNumber"`
+	Home         bool `json:"home"`
 }
 
 func NewPlayerKey(num int, home bool) PlayerKey {
@@ -37,6 +37,10 @@ type PlayerPosition struct {
 
 func (pp PlayerPosition) Key() pringleBuffer.Key {
 	return pringleBuffer.Key(pp.FrameIdx)
+}
+
+func (pp PlayerPosition) SKey() string {
+	return fmt.Sprintf("%d:%t", pp.PlayerNum, pp.Home)
 }
 
 func (frame SmallFrame) Key() pringleBuffer.Key {

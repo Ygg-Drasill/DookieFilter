@@ -65,12 +65,12 @@ if __name__ == '__main__':
     # }
 
     hyper_parameters = {
-        'n_nearest_players': [3], #3-5
-        'stack_size': [3], #4-32
-        'hidden_size': [512], #32-128
+        'n_nearest_players': [3,4,5,8,16], #3-5
+        'stack_size': [2,3,4,8,32], #4-32
+        'hidden_size': [128,256,512], #32-128
         'sequence_length': [20], #20-40
-        'batch_size': [64],
-        'lr': [0.001], #0.0001-0.00001
+        'batch_size': [64, 128, 256],
+        'lr': [0.01, 0.001, 0.0001],
     }
     datasets = {}
 
@@ -89,7 +89,7 @@ def train_model(
     model = PlayerPredictor(device, n_nearest, hidden_size, stack_size)
     model.to(device)
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    epochs = 50
+    epochs = 10
     loss_function = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
@@ -113,7 +113,7 @@ def train_model(
         model_name = format_model_name(n_nearest, stack_size, hidden_size, lr, epochs, batch_size, n_parameters)
         model_path = f'{export_directory}/models/{model_name}.pt'
 
-        figure = test_model(model, "../data/f361a535-4d7e-4470-a187-01074c0046fe/chunk_60.csv")
+        figure = test_model(model, "../temp/f361a535-4d7e-4470-a187-01074c0046fe/chunk_60.csv")
         writer.add_figure(f"Prediction example {model_name}", figure=figure, global_step=epoch)
         writer.flush()
         if validation_loss < validation_loss_low:
@@ -121,6 +121,7 @@ def train_model(
             torch.save(model.state_dict(), model_path)
         if train_loss < train_loss_low:
             train_loss_low = train_loss
+
     writer.add_hparams({
         'batch_size': batch_size,
         'n_nearest_players': n_nearest,
@@ -129,9 +130,10 @@ def train_model(
         'sequence_length': sequence_length,
         'lr': lr
     }, {
-        'train_loss': train_loss_low,
-        'test_loss': validation_loss_low
+        'loss': train_loss_low,
+        'deviation': validation_loss_low
     })
+
     writer.flush()
     writer.close()
 
@@ -148,8 +150,8 @@ def load_dataset(n_nearest: int, sequence_length: int, batch_size: int):
     print(f"found {len(chunk_sizes)} chunks of {total_samples} samples with average chunk size {average_chunk_size}")
     global train_set, validation_set, train_dataloader, validation_dataloader
     train_set, validation_set = PlayerDataset.from_dir(chunk_path, n_nearest, sequence_length)
-    train_dataloader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=1)
-    validation_dataloader = DataLoader(validation_set, batch_size=batch_size, shuffle=True, num_workers=1)
+    train_dataloader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=2)
+    validation_dataloader = DataLoader(validation_set, batch_size=batch_size, num_workers=2)
 
 
 def parameters() -> Generator[tuple[int, int, int, int, int, float], None, None]:

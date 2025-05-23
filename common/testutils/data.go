@@ -19,10 +19,9 @@ func randomMove(pos []float64) {
 	}
 }
 
-func randomPlayer() types.Player {
-	number := fmt.Sprintf("%d", rand.Intn(99))
+func randomPlayer(number int) types.Player {
 	return types.Player{
-		Number:   number,
+		Number:   fmt.Sprintf("%d", number),
 		OptaId:   "",
 		PlayerId: uuid.New().String(),
 		Speed:    rand.Float64(),
@@ -30,10 +29,19 @@ func randomPlayer() types.Player {
 	}
 }
 
+func popRandom(nums []int) ([]int, int) {
+	randomIndex := rand.Intn(len(nums))
+	num := nums[randomIndex]
+	newNums := make([]int, 0)
+	newNums = append(newNums, nums[:randomIndex]...)
+	newNums = append(newNums, nums[randomIndex+1:]...)
+	return newNums, num
+}
+
 func RandomFrame(awayPlayers, homePlayers int) types.Frame {
 	frame := types.Frame{
-		AwayPlayers: make([]types.Player, 0),
-		HomePlayers: make([]types.Player, 0),
+		AwayPlayers: make([]types.Player, awayPlayers),
+		HomePlayers: make([]types.Player, homePlayers),
 		Ball: struct {
 			Speed float64   `json:"speed"`
 			Xyz   []float64 `json:"xyz"`
@@ -44,12 +52,16 @@ func RandomFrame(awayPlayers, homePlayers int) types.Frame {
 		WallClock: int64(rand.Uint64()),
 	}
 
-	for range awayPlayers {
-		frame.AwayPlayers = append(frame.AwayPlayers, randomPlayer())
+	for i := range awayPlayers {
+		var num int
+		awayNumbers, num = popRandom(awayNumbers)
+		frame.AwayPlayers[i] = randomPlayer(num)
 	}
 
-	for range homePlayers {
-		frame.HomePlayers = append(frame.HomePlayers, randomPlayer())
+	for i := range homePlayers {
+		var num int
+		homeNumbers, num = popRandom(homeNumbers)
+		frame.HomePlayers[i] = randomPlayer(num)
 	}
 
 	return frame

@@ -37,6 +37,7 @@ var (
 	FILTER_OUTPUT ExternalSocketEndpoint
 )
 
+
 func init() {
 	STORAGE_API = ExternalSocketEndpoint(
 		fmt.Sprintf("127.0.0.1:%d", 5555)) //TODO: read from environment
