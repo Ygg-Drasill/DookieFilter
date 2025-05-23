@@ -1,5 +1,7 @@
 package filter
 
+import "log/slog"
+
 const divisor = 35.0
 const length = 5
 
@@ -25,6 +27,7 @@ func SavGolFilter[TElement FilterableElement]() FilterFunction[TElement] {
 			filteredValue := sum / divisor
 			err := elements[updateIndex].Update(k, filteredValue)
 			if err != nil {
+				slog.Error("Error updating filtered element", "error", err)
 				return elements
 			}
 			//End of filter logic

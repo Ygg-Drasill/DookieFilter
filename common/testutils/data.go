@@ -44,7 +44,7 @@ func RandomFrame(awayPlayers, homePlayers int) types.Frame {
 		WallClock: int64(rand.Uint64()),
 	}
 
-    for range awayPlayers {
+	for range awayPlayers {
 		frame.AwayPlayers = append(frame.AwayPlayers, randomPlayer())
 	}
 
@@ -56,7 +56,21 @@ func RandomFrame(awayPlayers, homePlayers int) types.Frame {
 }
 
 func RandomNextFrame(previous types.Frame) types.Frame {
-	next := types.Frame(previous)
+	next := types.Frame{}
+	next.AwayPlayers = make([]types.Player, len(previous.AwayPlayers))
+	next.HomePlayers = make([]types.Player, len(previous.HomePlayers))
+	copy(next.AwayPlayers, previous.AwayPlayers)
+	for i := range previous.AwayPlayers {
+		next.AwayPlayers[i].Xyz = make([]float64, len(next.AwayPlayers[i].Xyz))
+		copy(next.AwayPlayers[i].Xyz, previous.AwayPlayers[i].Xyz)
+	}
+
+	copy(next.HomePlayers, previous.HomePlayers)
+	for i := range previous.HomePlayers {
+		next.HomePlayers[i].Xyz = make([]float64, len(next.HomePlayers[i].Xyz))
+		copy(next.HomePlayers[i].Xyz, previous.HomePlayers[i].Xyz)
+	}
+
 	next.FrameIdx++
 	for i := range next.AwayPlayers {
 		randomMove(next.AwayPlayers[i].Xyz)
@@ -65,7 +79,8 @@ func RandomNextFrame(previous types.Frame) types.Frame {
 	for i := range next.HomePlayers {
 		randomMove(next.HomePlayers[i].Xyz)
 	}
-
+	next.Ball.Xyz = make([]float64, len(previous.Ball.Xyz))
+	copy(next.Ball.Xyz, previous.Ball.Xyz)
 	randomMove(next.Ball.Xyz)
 	next.WallClock++
 	next.GameClock += rand.Float64()

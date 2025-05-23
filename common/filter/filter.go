@@ -36,12 +36,12 @@ func (f *Filter[TElement]) Step(element TElement) (*TElement, FilterError) {
 	return poppedElement, nil
 }
 
-func New[TElement FilterableElement](fFilter FilterFunction[TElement], fKeys KeysFunction[TElement]) Filter[TElement] {
+func New[TElement FilterableElement](fFilter FilterFunction[TElement], fKeys KeysFunction[TElement], size int) Filter[TElement] {
 	return Filter[TElement]{
 		FilterFunction: fFilter,
 		KeysFunction:   fKeys,
 		Elements:       make([]TElement, 0),
-		size:           0,
+		size:           size,
 		full:           false,
 	}
 }
