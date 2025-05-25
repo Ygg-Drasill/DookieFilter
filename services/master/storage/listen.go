@@ -30,10 +30,11 @@ func (w *Worker) listenConsume(wg *sync.WaitGroup) {
 
 		if topic == "position" {
 			player := types.PlayerPosition{}
-			err := json.Unmarshal([]byte(strings.Join(message, "")), &player)
+			err = json.Unmarshal([]byte(strings.Join(message, "")), &player)
 			if err != nil {
 				w.Logger.Error("Error unmarshalling", "error", err.Error())
 			}
+			w.Logger.Info("Received new position", "player_number", player.PlayerNum, "player_home", player.Home)
 			key := types.NewPlayerKey(player.PlayerNum, player.Home)
 			w.mutex.Lock()
 			buffer := w.players[key]
@@ -44,7 +45,7 @@ func (w *Worker) listenConsume(wg *sync.WaitGroup) {
 
 		if topic == "frame" {
 			frame := types.DeserializeFrame(strings.Join(message, ""))
-			w.ballChan <- frame.Ball
+			//w.ballChan <- frame.Ball //TODO: fix
 			for _, player := range frame.Players {
 				w.mutex.Lock()
 				key := types.NewPlayerKey(player.PlayerNum, player.Home)
