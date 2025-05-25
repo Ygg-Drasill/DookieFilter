@@ -18,6 +18,77 @@ import (
 // Test timeout in seconds
 const timeout = 2
 
+func TestSwapSendsModifiedPositionToStorage(t *testing.T) {
+	ctx, err := zmq.NewContext()
+	assert.NoError(t, err)
+
+	w := New(ctx)
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go w.Run(wg)
+
+	// Setup socket to send frame to swap worker
+	socketInput, err := ctx.NewSocket(zmq.PUSH)
+	assert.NoError(t, err)
+	socketStorage, err := ctx.NewSocket(zmq.PULL)
+	assert.NoError(t, err)
+
+	err = socketInput.Connect(endpoints.InProcessEndpoint(endpoints.DETECTOR))
+	assert.NoError(t, err)
+	err = socketStorage.Bind(endpoints.InProcessEndpoint(endpoints.STORAGE))
+	assert.NoError(t, err)
+
+	frame := testutils.RandomFrame(2, 0)
+	framePacket := types.SerializeFrame(types.SmallFromBigFrame(frame))
+	t.Logf("Sending frame")
+	_, err = socketInput.SendMessage("frame", framePacket)
+	assert.NoError(t, err)
+
+	next := testutils.RandomNextFrame(frame)
+
+	tmp1 := next.AwayPlayers[0]
+	tmp2 := next.AwayPlayers[1]
+
+	tmp1.Xyz, tmp2.Xyz = tmp2.Xyz, tmp1.Xyz
+
+	next.AwayPlayers[0].Xyz = tmp1.Xyz
+	next.AwayPlayers[1].Xyz = tmp2.Xyz
+	nextPacket := types.SerializeFrame(types.SmallFromBigFrame(next))
+
+	t.Logf("Sending next frame with modified positions")
+	_, err = socketInput.SendMessage("frame", nextPacket)
+	assert.NoError(t, err)
+	doneRecv := make(chan bool)
+	go func() {
+		topic, err := socketStorage.Recv(zmq.SNDMORE)
+		assert.NoError(t, err)
+		assert.Equal(t, "position", topic)
+		t.Logf("Received frame from storage with topic: %s", topic)
+
+		packet, err := socketStorage.RecvMessage(0)
+		assert.NoError(t, err)
+		message := strings.Join(packet, "")
+		assert.Greater(t, len(message), 0)
+		t.Logf("Received message: %s", message)
+
+		var receivedFrame types.PlayerPosition
+		err = json.Unmarshal([]byte(message), &receivedFrame)
+		assert.NoError(t, err)
+
+		assert.Equal(t, next.FrameIdx, receivedFrame.FrameIdx, "Frame index should match")
+		doneRecv <- true
+	}()
+
+	select {
+	case result := <-doneRecv:
+		assert.True(t, result, "expected position message from swap worker within timeout")
+		assert.NoError(t, socketInput.Close())
+		assert.NoError(t, socketStorage.Close())
+	case <-time.After(timeout * time.Second):
+		t.Fatal("Test timed out waiting for position message")
+	}
+}
+
 func TestDetectHole(t *testing.T) {
 	endpoint := "inproc://test"
 	ctx, err := zmq.NewContext()
