@@ -166,12 +166,11 @@ func (w *Worker) decide(
 			swappers[key] = false
 			w.Logger.Debug("swapped", "key", f.SKey(), "player", frame.Players[i].Position)
 
-			playerPosition, _ := json.Marshal(frame.Players[i].Position)
+			playerPosition, _ := json.Marshal(frame.Players[i])
 			_, err := w.socketStorage.SendMessage("position", playerPosition)
 			if err != nil {
 				w.Logger.Error("Failed to send imputation message", "error", err, "key", key)
 			}
-			break
 		}
 		if swapped && !found {
 			for _, v := range p[key] {
