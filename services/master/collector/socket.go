@@ -22,7 +22,7 @@ func (w *Worker) connect() error {
 		return err
 	}
 
-	err = w.socketListen.Bind(endpoints.InProcessEndpoint(endpoints.COLLECTOR))
+	err = w.socketListen.Bind(w.endpoint)
 	if err != nil {
 		return err
 	}

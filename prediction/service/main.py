@@ -8,5 +8,5 @@ if __name__ == "__main__":
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = load_model(sys.argv[1], device)
     service = ImputationService(model)
-    service.connect(5555, 5556, 5557)
+    service.connect(5557, 5555, 5558)
     service.run()

@@ -9,13 +9,21 @@ import (
 
 const fieldWidth, fieldHeight = 105, 68
 
+const (
+	JumpThreshold = 5 //TODO: change me
+
+	playerMaxSpeed  = 9.5 // m/s
+	frameTime       = 1.0 / 25.0
+	maxMovePerFrame = frameTime*playerMaxSpeed - 0.001
+)
+
 func randomPosition() []float64 {
 	return []float64{rand.Float64() * fieldWidth, rand.Float64() * fieldHeight, rand.Float64()}
 }
 
 func randomMove(pos []float64) {
 	for i, value := range pos {
-		pos[i] = value + rand.Float64() - 0.5
+		pos[i] = value + (rand.Float64()-0.5)*maxMovePerFrame
 	}
 }
 
