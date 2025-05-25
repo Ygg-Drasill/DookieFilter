@@ -28,6 +28,20 @@ func (w *Worker) listenConsume(wg *sync.WaitGroup) {
 			w.Logger.Error("Error receiving message:", "error", err.Error())
 		}
 
+		if topic != "position" {
+			player := types.PlayerPosition{}
+			err := json.Unmarshal([]byte(strings.Join(message, "")), &player)
+			if err != nil {
+				w.Logger.Error("Error unmarshalling", "error", err.Error())
+			}
+			key := types.NewPlayerKey(player.PlayerNum, player.Home)
+			w.mutex.Lock()
+			buffer := w.players[key]
+			buffer.Insert(player)
+			w.players[key] = buffer
+			w.mutex.Unlock()
+		}
+
 		if topic == "frame" {
 			frame := types.DeserializeFrame(strings.Join(message, ""))
 			w.ballChan <- frame.Ball

@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"github.com/Ygg-Drasill/DookieFilter/common/socket/endpoints"
 	"github.com/Ygg-Drasill/DookieFilter/services/master/worker"
 	zmq "github.com/pebbe/zmq4"
 	"sync"
@@ -11,11 +12,13 @@ type Worker struct {
 	socketListen   *zmq.Socket
 	socketStore    *zmq.Socket
 	socketDetector *zmq.Socket
+	endpoint       string
 }
 
 func New(ctx *zmq.Context, options ...func(worker *Worker)) *Worker {
 	w := &Worker{
 		BaseWorker: worker.NewBaseWorker(ctx, "collector"),
+		endpoint:   endpoints.TcpEndpoint(endpoints.COLLECTOR),
 	}
 	for _, opt := range options {
 		opt(w)
