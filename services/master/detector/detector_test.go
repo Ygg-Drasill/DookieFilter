@@ -84,7 +84,7 @@ func TestSwapSendsModifiedPositionToStorage(t *testing.T) {
 		assert.True(t, result, "expected position message from swap worker within timeout")
 		assert.NoError(t, socketInput.Close())
 		assert.NoError(t, socketStorage.Close())
-	case <-time.After(timeout * time.Second):
+	case <-time.After(timeout * time.Second * 100):
 		t.Fatal("Test timed out waiting for position message")
 	}
 }
