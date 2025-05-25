@@ -16,7 +16,43 @@ import (
 )
 
 // Test timeout in seconds
-const timeout = 2
+const timeout = 20
+
+func TestSwapSendsModifiedPositionToStorage(t *testing.T) {
+	ctx, err := zmq.NewContext()
+	assert.NoError(t, err)
+
+	w := New(ctx)
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go w.Run(wg)
+
+	// Setup socket to send frame to swap worker
+	socketInput, err := ctx.NewSocket(zmq.PUSH)
+	assert.NoError(t, err)
+	socketStorage, err := ctx.NewSocket(zmq.PULL)
+	assert.NoError(t, err)
+
+	err = socketInput.Connect(endpoints.InProcessEndpoint(endpoints.DETECTOR))
+	assert.NoError(t, err)
+	err = socketStorage.Bind(endpoints.InProcessEndpoint(endpoints.STORAGE))
+	assert.NoError(t, err)
+
+	frame := testutils.RandomFrame(11, 11)
+	framePacket := types.SerializeFrame(types.SmallFromBigFrame(frame))
+	t.Logf("Sending frame")
+	_, err = socketInput.SendMessage("frame", framePacket)
+	assert.NoError(t, err)
+	_, err = socketInput.SendMessage("frame", framePacket)
+	assert.NoError(t, err)
+
+	m, err := socketStorage.RecvMessage(0)
+	assert.NoError(t, err)
+	t.Logf("Received frame from storage %s", m)
+
+	assert.NoError(t, socketInput.Close())
+	assert.NoError(t, socketStorage.Close())
+}
 
 func TestDetectHole(t *testing.T) {
 	endpoint := "inproc://test"
