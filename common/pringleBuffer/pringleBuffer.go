@@ -120,6 +120,6 @@ func (pb *PringleBuffer[TElement]) popTail() {
 	pb.tail.next = nil
 
 	if pb.onTailPop != nil {
-		pb.onTailPop(pb.head.data)
+		pb.onTailPop(tail.data)
 	}
 }

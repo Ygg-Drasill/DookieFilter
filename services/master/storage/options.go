@@ -1,5 +1,7 @@
 package storage
 
+const FrameBufferSize = 5
+
 // WithBufferSize sets the size of the storage buffer, default is 10
 func WithBufferSize(size int) func(worker *Worker) {
 	return func(worker *Worker) {
