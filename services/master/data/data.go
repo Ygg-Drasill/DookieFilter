@@ -3,7 +3,6 @@ package data
 import (
 	"encoding/json"
 	"errors"
-	"github.com/Ygg-Drasill/DookieFilter/common/socket/endpoints"
 	"github.com/Ygg-Drasill/DookieFilter/common/types"
 	"github.com/Ygg-Drasill/DookieFilter/services/master/worker"
 	zmq "github.com/pebbe/zmq4"
@@ -17,11 +16,13 @@ type Worker struct {
 	worker.BaseWorker
 	socketSend  *zmq.Socket
 	frameLoader types.FrameLoader[types.Frame]
+	endpoint    string
 }
 
-func New(ctx *zmq.Context, options ...func(worker *Worker)) *Worker {
+func New(ctx *zmq.Context, endpoint string, options ...func(worker *Worker)) *Worker {
 	w := &Worker{
 		BaseWorker: worker.NewBaseWorker(ctx, "dataloader"),
+		endpoint:   endpoint,
 	}
 	for _, opt := range options {
 		opt(w)
@@ -78,7 +79,7 @@ func (w *Worker) connect() {
 		w.Logger.Error("Failed to create new socket")
 	}
 
-	err = w.socketSend.Connect(endpoints.InProcessEndpoint(endpoints.COLLECTOR))
+	err = w.socketSend.Connect(w.endpoint)
 	if err != nil {
 		w.Logger.Error("Failed to connect socket")
 	}

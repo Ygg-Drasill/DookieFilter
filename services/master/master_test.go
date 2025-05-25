@@ -29,12 +29,13 @@ func Test_WorkerIntegration(t *testing.T) {
 	filterEndpoint := "inproc://filter_test"
 	imputationEndpoint := "inproc://imputation_test"
 	storageEndpoint := "inproc://storage_test"
+	collectorEndpoint := "inproc://collector_test"
 
 	pool := worker.NewPool()
 	pool.Add(storage.New(ctx,
 		storage.WithBufferSize(testFrameCount), //Make sure that all frames fit in the storage buffer
 		storage.WithAPIEndpoint(storageEndpoint)))
-	pool.Add(collector.New(ctx))
+	pool.Add(collector.New(ctx, collector.WithEndpoint(collectorEndpoint)))
 	pool.Add(detector.New(ctx, detector.WithImputationEndpoint(imputationEndpoint)))
 	pool.Add(filter.New(ctx, filter.WithOutputEndpoint(filterEndpoint)))
 
@@ -42,7 +43,7 @@ func Test_WorkerIntegration(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	err = collectorSock.Connect(endpoints.InProcessEndpoint(endpoints.COLLECTOR))
+	err = collectorSock.Connect(collectorEndpoint)
 	if err != nil {
 		panic(err)
 	}
