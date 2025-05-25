@@ -16,7 +16,7 @@ import (
 )
 
 const sendInterval = time.Second / 25
-const testLength = 25 * 120
+const testLength = 25 * 60 * 1
 
 func main() {
 	mutex := sync.Mutex{}
@@ -84,7 +84,6 @@ func main() {
 	rawFrameChan := make(chan *types.Frame, testLength)
 	frameIndex := startFrame.FrameIdx
 	wg := sync.WaitGroup{}
-	wg.Add(1)
 	go func() {
 		for range testLength {
 			rawFrame.FrameIdx = frameIndex
@@ -107,25 +106,25 @@ func main() {
 			time.Sleep(sendInterval)
 		}
 		time.Sleep(1 * time.Second)
-		wg.Done()
 	}()
 
 	durationSum := int64(0)
 	frameCount := 0
 
-	totalRawError, totalFilteredError := float64(0), float64(0)
+	totalRawErrorCm, totalFilteredErrorCm := float64(0), float64(0)
+	wg.Add(1)
 	go func() {
-		for {
+		for pFrame.Live == true {
 			message, err := socketOutput.RecvMessage(0)
 			if err != nil {
 				panic(err)
 			}
 			filteredFrame := types.SmallFrame{}
-			fmt.Println("received", filteredFrame.FrameIdx)
 			err = json.Unmarshal([]byte(strings.Join(message[1:], "")), &filteredFrame)
 			if err != nil {
 				panic(err)
 			}
+			fmt.Println("received", filteredFrame.FrameIdx)
 
 			mutex.Lock()
 			tStart := timeStartMap[filteredFrame.FrameIdx]
@@ -174,28 +173,29 @@ func main() {
 
 				for _, pp := range producedTeam {
 					if pp.Number == filteredPlayer.PlayerNum {
-						rawPlayer = types.Position{
+						producedPlayer = types.Position{
 							X: pp.Xyz[0],
 							Y: pp.Xyz[1],
 						}
 					}
 				}
 
-				totalFilteredError = math.Sqrt(
-					math.Pow(producedPlayer.X-filteredPlayer.X, 2) +
-						math.Pow(producedPlayer.Y-filteredPlayer.Y, 2))
-				totalRawError = math.Sqrt(
-					math.Pow(producedPlayer.X-rawPlayer.X, 2) +
-						math.Pow(producedPlayer.Y-rawPlayer.Y, 2))
+				totalFilteredErrorCm = math.Sqrt(
+					math.Pow(producedPlayer.X-filteredPlayer.X, 2)+
+						math.Pow(producedPlayer.Y-filteredPlayer.Y, 2)) * 100
+				totalRawErrorCm = math.Sqrt(
+					math.Pow(producedPlayer.X-rawPlayer.X, 2)+
+						math.Pow(producedPlayer.Y-rawPlayer.Y, 2)) * 100
 			}
 
 			//Done measuring error
 
 			pFrame = producedReader.next()
 		}
+		wg.Done()
 	}()
 
 	wg.Wait()
-	fmt.Printf("Results\nAverage time in pipeline: %d\nFrames processed: %d\nAverage positional deviation (filtered): %f\nAverage positional deviation (Raw): %f\n",
-		durationSum/int64(frameCount), frameCount, totalFilteredError/float64(frameCount), totalRawError/float64(frameCount))
+	fmt.Printf("Results\nAverage time in pipeline: %d\nFrames processed: %d\nAverage positional deviation (filtered): %fcm\nAverage positional deviation (raw): %fcm\n",
+		durationSum/int64(frameCount), frameCount, totalFilteredErrorCm/float64(frameCount), totalRawErrorCm/float64(frameCount))
 }
