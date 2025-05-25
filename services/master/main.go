@@ -6,6 +6,7 @@ import (
 	"github.com/Ygg-Drasill/DookieFilter/services/master/collector"
 	"github.com/Ygg-Drasill/DookieFilter/services/master/data"
 	"github.com/Ygg-Drasill/DookieFilter/services/master/detector"
+	"github.com/Ygg-Drasill/DookieFilter/services/master/filter"
 	"github.com/Ygg-Drasill/DookieFilter/services/master/storage"
 	"github.com/Ygg-Drasill/DookieFilter/services/master/worker"
 	"github.com/joho/godotenv"
@@ -18,7 +19,7 @@ func init() {
 	slog.SetDefault(logger.New("master", "DEBUG"))
 }
 
-const dataWindowSize = 30 * 25 //seconds * frames per seconds
+const dataWindowSize = 15 * 25 //seconds * frames per seconds
 
 func main() {
 	err := godotenv.Load(".env")
@@ -46,9 +47,11 @@ func main() {
 	workers.Add(collector.New(socketCtx))
 
 	workers.Add(storage.New(socketCtx,
-		storage.WithBufferSize(1024)))
+		storage.WithBufferSize(dataWindowSize)))
 
 	workers.Add(detector.New(socketCtx))
+
+	workers.Add(filter.New(socketCtx))
 
 	workers.Wait()
 }
