@@ -18,11 +18,17 @@ type PringleBuffer[TElement PringleIndexable] struct {
 	onTailPop func(TElement)
 }
 
-func New[TElement PringleIndexable](size int) *PringleBuffer[TElement] {
-	return &PringleBuffer[TElement]{
+func New[TElement PringleIndexable](size int, opts ...func(buffer *PringleBuffer[TElement])) *PringleBuffer[TElement] {
+	buffer := &PringleBuffer[TElement]{
 		Size:  size,
 		count: 0,
 	}
+
+	for _, opt := range opts {
+		opt(buffer)
+	}
+
+	return buffer
 }
 
 func (pb *PringleBuffer[TElement]) Count() int {
@@ -114,6 +120,6 @@ func (pb *PringleBuffer[TElement]) popTail() {
 	pb.tail.next = nil
 
 	if pb.onTailPop != nil {
-		pb.onTailPop(pb.head.data)
+		pb.onTailPop(tail.data)
 	}
 }

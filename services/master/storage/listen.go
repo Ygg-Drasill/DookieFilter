@@ -30,12 +30,17 @@ func (w *Worker) listenConsume(wg *sync.WaitGroup) {
 
 		if topic == "frame" {
 			frame := types.DeserializeFrame(strings.Join(message, ""))
+			w.ballChan <- frame.Ball
 			for _, player := range frame.Players {
 				w.mutex.Lock()
 				key := types.NewPlayerKey(player.PlayerNum, player.Home)
 				buffer, ok := w.players[key]
 				if !ok {
-					playerBuffer := *pringleBuffer.New[types.PlayerPosition](w.bufferSize)
+					playerBuffer := *pringleBuffer.New[types.PlayerPosition](
+						w.bufferSize,
+						pringleBuffer.WithOnPopTail(func(element types.PlayerPosition) {
+							w.correctedPlayersChan <- element
+						}))
 					w.players[key] = playerBuffer
 					buffer = playerBuffer
 				}
