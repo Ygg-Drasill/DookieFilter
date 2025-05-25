@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-const testFrameCount = 30
+const testFrameCount = 300 //TODO: Breaks at 128
 
 func Test_WorkerIntegration(t *testing.T) {
 	ctx, err := zmq.NewContext()

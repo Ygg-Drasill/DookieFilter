@@ -18,7 +18,10 @@ func (w *Worker) forwardFramesToFilter(wg *sync.WaitGroup) {
 			newFrame := &types.SmallFrame{
 				FrameIdx: correctedPlayer.FrameIdx,
 				Players:  make([]types.PlayerPosition, 1),
-				Ball:     <-w.ballChan, //TODO: this is very flaky
+				Ball: types.Position{
+					X: 0,
+					Y: 0,
+				}, //TODO: was `<- w.ballChan` this was very flaky
 			}
 			newFrame.Players[0] = correctedPlayer
 			w.frameBuffer.Insert(newFrame)
