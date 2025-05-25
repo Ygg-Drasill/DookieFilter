@@ -28,7 +28,7 @@ func (w *Worker) listenConsume(wg *sync.WaitGroup) {
 			w.Logger.Error("Error receiving message:", "error", err.Error())
 		}
 
-		if topic != "position" {
+		if topic == "position" {
 			player := types.PlayerPosition{}
 			err := json.Unmarshal([]byte(strings.Join(message, "")), &player)
 			if err != nil {
