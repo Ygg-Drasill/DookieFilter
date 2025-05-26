@@ -7,7 +7,7 @@ import torch
 from matplotlib import pyplot as plt
 from torch import nn
 from torch.utils.data import DataLoader, ConcatDataset, Dataset
-from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter, writer
 from tqdm import tqdm
 
 from epoch import train_epoch, validate_epoch

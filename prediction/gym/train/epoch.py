@@ -51,7 +51,7 @@ def train_epoch(epoch: int,
         out_y = output[:, 1]
         output = torch.stack((denormalize_x(out_x), denormalize_y(out_y)), dim=1)
 
-        loss = loss_function(output, batch_y)
+        loss = torch.functional.cdist(output, batch_y, p=2)# loss_function(output, batch_y)
         #loss = loss + low_movement_penalty * LOSS_MOVEMENT_SCALE + angle_penalty * LOSS_ANGLE_SCALE
 
         running_loss += loss.item()
