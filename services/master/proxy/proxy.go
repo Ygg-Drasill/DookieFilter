@@ -1,4 +1,4 @@
-package collector
+package proxy
 
 import (
 	"github.com/Ygg-Drasill/DookieFilter/common/socket/endpoints"
@@ -9,16 +9,15 @@ import (
 
 type Worker struct {
 	worker.BaseWorker
-	socketListen   *zmq.Socket
-	socketStore    *zmq.Socket
-	socketDetector *zmq.Socket
-	endpoint       string
+	socketListen  *zmq.Socket
+	socketForward *zmq.Socket
+	endpoint      string
 }
 
 func New(ctx *zmq.Context, options ...func(worker *Worker)) *Worker {
 	w := &Worker{
-		BaseWorker: worker.NewBaseWorker(ctx, "collector"),
-		endpoint:   endpoints.TcpEndpoint(endpoints.COLLECTOR),
+		BaseWorker: worker.NewBaseWorker(ctx, "proxy"),
+		endpoint:   endpoints.TcpEndpoint(endpoints.STORAGE_PROXY),
 	}
 	for _, opt := range options {
 		opt(w)
@@ -42,5 +41,5 @@ func (w *Worker) Run(wg *sync.WaitGroup) {
 		}
 	}
 
-	w.Logger.Warn("Collector worker stopped")
+	w.Logger.Warn("Proxy worker stopped")
 }

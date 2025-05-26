@@ -5,6 +5,7 @@ import (
 	"github.com/Ygg-Drasill/DookieFilter/services/master/collector"
 	"github.com/Ygg-Drasill/DookieFilter/services/master/detector"
 	"github.com/Ygg-Drasill/DookieFilter/services/master/filter"
+	"github.com/Ygg-Drasill/DookieFilter/services/master/proxy"
 	"github.com/Ygg-Drasill/DookieFilter/services/master/storage"
 	"github.com/Ygg-Drasill/DookieFilter/services/master/worker"
 	"github.com/joho/godotenv"
@@ -49,6 +50,8 @@ func main() {
 	workers.Add(detector.New(socketCtx))
 
 	workers.Add(filter.New(socketCtx))
+
+	workers.Add(proxy.New(socketCtx))
 
 	workers.Wait()
 }

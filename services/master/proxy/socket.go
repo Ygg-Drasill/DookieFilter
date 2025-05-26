@@ -1,4 +1,4 @@
-package collector
+package proxy
 
 import (
 	"github.com/Ygg-Drasill/DookieFilter/common/socket/endpoints"
@@ -6,52 +6,14 @@ import (
 )
 
 func (w *Worker) connect() error {
-	var err error
-	w.socketListen, err = w.SocketContext.NewSocket(zmq.PULL)
-	if err != nil {
-		return err
-	}
+	w.socketListen = w.BaseWorker.NewSocket(zmq.PULL)
+	w.socketForward = w.BaseWorker.NewSocket(zmq.PUSH)
 
-	w.socketStore, err = w.SocketContext.NewSocket(zmq.PUSH)
-	if err != nil {
-		return err
-	}
-
-	w.socketDetector, err = w.SocketContext.NewSocket(zmq.PUSH)
-	if err != nil {
-		return err
-	}
-
-	err = w.socketListen.Bind(w.endpoint)
-	if err != nil {
-		return err
-	}
-
-	err = w.socketStore.Connect(endpoints.InProcessEndpoint(endpoints.STORAGE))
-	if err != nil {
-		return err
-	}
-
-	err = w.socketDetector.Connect(endpoints.InProcessEndpoint(endpoints.DETECTOR))
-	if err != nil {
-		return err
-	}
-
+	w.BaseWorker.Bind(w.socketListen, w.endpoint)
+	w.BaseWorker.Connect(w.socketForward, endpoints.InProcessEndpoint(endpoints.STORAGE))
 	return nil
 }
 
 func (w *Worker) close() {
-	var err error
-	err = w.socketListen.Close()
-	if err != nil {
-		w.Logger.Warn("failed to close socket (listen)", "error", err.Error())
-	}
-	err = w.socketStore.Close()
-	if err != nil {
-		w.Logger.Warn("failed to close socket (storage)", "error", err.Error())
-	}
-	err = w.socketDetector.Close()
-	if err != nil {
-		w.Logger.Warn("failed to close socket (forward)", "error", err.Error())
-	}
+	w.BaseWorker.CloseAllSockets()
 }
