@@ -16,7 +16,7 @@ import (
 )
 
 const sendInterval = time.Second / 25
-const testLength = 25 * 60 * 1
+const testLength = 25 * 60 * 10 //1
 
 func main() {
 	mutex := sync.Mutex{}
@@ -85,7 +85,7 @@ func main() {
 	frameIndex := startFrame.FrameIdx
 	wg := sync.WaitGroup{}
 	go func() {
-		for range testLength {
+		for {
 			rawFrame.FrameIdx = frameIndex
 			rawFrameChan <- rawFrame
 			data, err := json.Marshal(rawFrame)
@@ -115,7 +115,7 @@ func main() {
 	missingRawPoints, missingFilteredPoints := 0, 0
 	wg.Add(1)
 	go func() {
-		for pFrame.Live == true {
+		for range testLength {
 			message, err := socketOutput.RecvMessage(0)
 			if err != nil {
 				panic(err)
@@ -184,85 +184,6 @@ func main() {
 
 			compare(pFrame.HomePlayers, rawFrame.HomePlayers, true)
 			compare(pFrame.AwayPlayers, rawFrame.AwayPlayers, false)
-
-			////Measure error
-			//for _, player := range pFrame.HomePlayers {
-			//	rawPlayer, filteredPlayer := types.Position{}, types.Position{}
-			//	for _, p := range filteredFrame.Players {
-			//		if p.Home && p.PlayerNum == player.Number {
-			//			filteredPlayer = p.Position
-			//		}
-			//	}
-			//
-			//	for _, p := range rawFrame.HomePlayers {
-			//		if p.Number == fmt.Sprintf("%d", player.Number) {
-			//			rawPlayer = types.Position{
-			//				X: p.Xyz[0],
-			//				Y: p.Xyz[1],
-			//			}
-			//		}
-			//	}
-			//	if rawPlayer.X == 0 || rawPlayer.Y == 0 {
-			//		missingRawPoints++
-			//	} else {
-			//		totalRawErrorMm = math.Sqrt(
-			//			math.Pow(player.Xyz[0]-rawPlayer.X, 2)+
-			//				math.Pow(player.Xyz[1]-rawPlayer.Y, 2)) * 100 * 100
-			//	}
-			//	if filteredPlayer.X == 0 || filteredPlayer.Y == 0 {
-			//		missingFilteredPoints++
-			//	} else {
-			//		totalFilteredErrorMm = math.Sqrt(
-			//			math.Pow(player.Xyz[0]-filteredPlayer.X, 2)+
-			//				math.Pow(player.Xyz[1]-filteredPlayer.Y, 2)) * 100 * 100
-			//	}
-			//}
-
-			//for _, filteredPlayer := range filteredFrame.Players {
-			//	rawPlayer, producedPlayer := types.Position{}, types.Position{}
-			//	var producedTeam []struct {
-			//		PlayerId string    `json:"playerId"`
-			//		Number   int       `json:"number"`
-			//		Xyz      []float64 `json:"xyz"`
-			//		Speed    float64   `json:"speed"`
-			//		OptaId   string    `json:"optaId"`
-			//	}
-			//	rawTeam := []types.Player{}
-			//
-			//	if filteredPlayer.Home {
-			//		rawTeam = raw.HomePlayers
-			//		producedTeam = pFrame.HomePlayers
-			//	} else {
-			//		rawTeam = raw.AwayPlayers
-			//		producedTeam = pFrame.AwayPlayers
-			//	}
-			//
-			//	for _, rp := range rawTeam {
-			//		if rp.Number == fmt.Sprintf("%d", filteredPlayer.PlayerNum) {
-			//			rawPlayer = types.Position{
-			//				X: rp.Xyz[0],
-			//				Y: rp.Xyz[1],
-			//			}
-			//		}
-			//	}
-			//
-			//	for _, pp := range producedTeam {
-			//		if pp.Number == filteredPlayer.PlayerNum {
-			//			producedPlayer = types.Position{
-			//				X: pp.Xyz[0],
-			//				Y: pp.Xyz[1],
-			//			}
-			//		}
-			//	}
-			//
-			//	totalFilteredErrorMm = math.Sqrt(
-			//		math.Pow(producedPlayer.X-filteredPlayer.X, 2)+
-			//			math.Pow(producedPlayer.Y-filteredPlayer.Y, 2)) * 100
-			//	totalRawErrorMm = math.Sqrt(
-			//		math.Pow(producedPlayer.X-rawPlayer.X, 2)+
-			//			math.Pow(producedPlayer.Y-rawPlayer.Y, 2)) * 100
-			//}
-
 			//Done measuring error
 
 			pFrame = producedReader.next()
