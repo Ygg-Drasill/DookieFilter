@@ -111,7 +111,8 @@ func main() {
 	durationSum := int64(0)
 	frameCount := 0
 
-	totalRawErrorCm, totalFilteredErrorCm := float64(0), float64(0)
+	totalRawErrorMm, totalFilteredErrorMm := float64(0), float64(0)
+	missingRawPoints, missingFilteredPoints := 0, 0
 	wg.Add(1)
 	go func() {
 		for pFrame.Live == true {
@@ -141,52 +142,126 @@ func main() {
 				panic("Unequal frame index")
 			}
 
-			//Measure error
-
-			for _, filteredPlayer := range filteredFrame.Players {
-				rawPlayer, producedPlayer := types.Position{}, types.Position{}
-				var producedTeam []struct {
-					PlayerId string    `json:"playerId"`
-					Number   int       `json:"number"`
-					Xyz      []float64 `json:"xyz"`
-					Speed    float64   `json:"speed"`
-					OptaId   string    `json:"optaId"`
-				}
-				rawTeam := []types.Player{}
-
-				if filteredPlayer.Home {
-					rawTeam = raw.HomePlayers
-					producedTeam = pFrame.HomePlayers
-				} else {
-					rawTeam = raw.AwayPlayers
-					producedTeam = pFrame.AwayPlayers
-				}
-
-				for _, rp := range rawTeam {
-					if rp.Number == fmt.Sprintf("%d", filteredPlayer.PlayerNum) {
-						rawPlayer = types.Position{
-							X: rp.Xyz[0],
-							Y: rp.Xyz[1],
+			var compare = func(producedPlayers []struct {
+				PlayerId string    `json:"playerId"`
+				Number   int       `json:"number"`
+				Xyz      []float64 `json:"xyz"`
+				Speed    float64   `json:"speed"`
+				OptaId   string    `json:"optaId"`
+			}, rawPlayers []types.Player, home bool) {
+				for _, player := range producedPlayers {
+					rawPlayer, filteredPlayer := types.Position{}, types.Position{}
+					for _, p := range filteredFrame.Players {
+						if p.Home == home && p.PlayerNum == player.Number {
+							filteredPlayer = p.Position
 						}
 					}
-				}
 
-				for _, pp := range producedTeam {
-					if pp.Number == filteredPlayer.PlayerNum {
-						producedPlayer = types.Position{
-							X: pp.Xyz[0],
-							Y: pp.Xyz[1],
+					for _, p := range rawPlayers {
+						if p.Number == fmt.Sprintf("%d", player.Number) {
+							rawPlayer = types.Position{
+								X: p.Xyz[0],
+								Y: p.Xyz[1],
+							}
 						}
 					}
+					if rawPlayer.X == 0 || rawPlayer.Y == 0 {
+						missingRawPoints++
+					} else {
+						totalRawErrorMm = math.Sqrt(
+							math.Pow(player.Xyz[0]-rawPlayer.X, 2)+
+								math.Pow(player.Xyz[1]-rawPlayer.Y, 2)) * 100 * 100
+					}
+					if filteredPlayer.X == 0 || filteredPlayer.Y == 0 {
+						missingFilteredPoints++
+					} else {
+						totalFilteredErrorMm = math.Sqrt(
+							math.Pow(player.Xyz[0]-filteredPlayer.X, 2)+
+								math.Pow(player.Xyz[1]-filteredPlayer.Y, 2)) * 100 * 100
+					}
 				}
-
-				totalFilteredErrorCm = math.Sqrt(
-					math.Pow(producedPlayer.X-filteredPlayer.X, 2)+
-						math.Pow(producedPlayer.Y-filteredPlayer.Y, 2)) * 100
-				totalRawErrorCm = math.Sqrt(
-					math.Pow(producedPlayer.X-rawPlayer.X, 2)+
-						math.Pow(producedPlayer.Y-rawPlayer.Y, 2)) * 100
 			}
+
+			compare(pFrame.HomePlayers, rawFrame.HomePlayers, true)
+			compare(pFrame.AwayPlayers, rawFrame.AwayPlayers, false)
+
+			////Measure error
+			//for _, player := range pFrame.HomePlayers {
+			//	rawPlayer, filteredPlayer := types.Position{}, types.Position{}
+			//	for _, p := range filteredFrame.Players {
+			//		if p.Home && p.PlayerNum == player.Number {
+			//			filteredPlayer = p.Position
+			//		}
+			//	}
+			//
+			//	for _, p := range rawFrame.HomePlayers {
+			//		if p.Number == fmt.Sprintf("%d", player.Number) {
+			//			rawPlayer = types.Position{
+			//				X: p.Xyz[0],
+			//				Y: p.Xyz[1],
+			//			}
+			//		}
+			//	}
+			//	if rawPlayer.X == 0 || rawPlayer.Y == 0 {
+			//		missingRawPoints++
+			//	} else {
+			//		totalRawErrorMm = math.Sqrt(
+			//			math.Pow(player.Xyz[0]-rawPlayer.X, 2)+
+			//				math.Pow(player.Xyz[1]-rawPlayer.Y, 2)) * 100 * 100
+			//	}
+			//	if filteredPlayer.X == 0 || filteredPlayer.Y == 0 {
+			//		missingFilteredPoints++
+			//	} else {
+			//		totalFilteredErrorMm = math.Sqrt(
+			//			math.Pow(player.Xyz[0]-filteredPlayer.X, 2)+
+			//				math.Pow(player.Xyz[1]-filteredPlayer.Y, 2)) * 100 * 100
+			//	}
+			//}
+
+			//for _, filteredPlayer := range filteredFrame.Players {
+			//	rawPlayer, producedPlayer := types.Position{}, types.Position{}
+			//	var producedTeam []struct {
+			//		PlayerId string    `json:"playerId"`
+			//		Number   int       `json:"number"`
+			//		Xyz      []float64 `json:"xyz"`
+			//		Speed    float64   `json:"speed"`
+			//		OptaId   string    `json:"optaId"`
+			//	}
+			//	rawTeam := []types.Player{}
+			//
+			//	if filteredPlayer.Home {
+			//		rawTeam = raw.HomePlayers
+			//		producedTeam = pFrame.HomePlayers
+			//	} else {
+			//		rawTeam = raw.AwayPlayers
+			//		producedTeam = pFrame.AwayPlayers
+			//	}
+			//
+			//	for _, rp := range rawTeam {
+			//		if rp.Number == fmt.Sprintf("%d", filteredPlayer.PlayerNum) {
+			//			rawPlayer = types.Position{
+			//				X: rp.Xyz[0],
+			//				Y: rp.Xyz[1],
+			//			}
+			//		}
+			//	}
+			//
+			//	for _, pp := range producedTeam {
+			//		if pp.Number == filteredPlayer.PlayerNum {
+			//			producedPlayer = types.Position{
+			//				X: pp.Xyz[0],
+			//				Y: pp.Xyz[1],
+			//			}
+			//		}
+			//	}
+			//
+			//	totalFilteredErrorMm = math.Sqrt(
+			//		math.Pow(producedPlayer.X-filteredPlayer.X, 2)+
+			//			math.Pow(producedPlayer.Y-filteredPlayer.Y, 2)) * 100
+			//	totalRawErrorMm = math.Sqrt(
+			//		math.Pow(producedPlayer.X-rawPlayer.X, 2)+
+			//			math.Pow(producedPlayer.Y-rawPlayer.Y, 2)) * 100
+			//}
 
 			//Done measuring error
 
@@ -196,6 +271,14 @@ func main() {
 	}()
 
 	wg.Wait()
-	fmt.Printf("Results\nAverage time in pipeline: %d\nFrames processed: %d\nAverage positional deviation (filtered): %fcm\nAverage positional deviation (raw): %fcm\n",
-		durationSum/int64(frameCount), frameCount, totalFilteredErrorCm/float64(frameCount), totalRawErrorCm/float64(frameCount))
+	fmt.Printf("Results\nAverage time in pipeline: %d\nFrames processed: %d\n"+
+		"Average positional deviation (filtered): %f mm\n"+
+		"Missing datapoints (filtered): %d\n"+
+		"Average positional deviation (raw): %f mm\n"+
+		"Missing raw points (raw): %d\n",
+		durationSum/int64(frameCount), frameCount,
+		totalFilteredErrorMm/float64(frameCount),
+		missingRawPoints,
+		totalRawErrorMm/float64(frameCount),
+		missingFilteredPoints)
 }
