@@ -54,6 +54,8 @@ func (w *Worker) Run(wg *sync.WaitGroup) {
 			w.stateBuffer.Insert(frame)
 			w.detect(frame)
 			w.detectHoles(frame)
+		} else {
+			w.socketListen.RecvMessage(0)
 		}
 	}
 }
@@ -161,7 +163,14 @@ func (w *Worker) decide(
 			w.Logger.Debug("swapped", "player", f.SKey(), "old position", oldPos, "new position", frame.Players[i].Position)
 
 			playerPosition, _ := json.Marshal(frame.Players[i])
-			_, err := w.socketStorage.SendMessage("position", playerPosition)
+			_, err := w.socketStorage.Send("position", zmq.SNDMORE)
+			if err != nil {
+				w.Logger.Error("Failed to send position topic", "error", err)
+			}
+			n, err := w.socketStorage.SendMessage(playerPosition)
+			if n <= 0 {
+				w.Logger.Error("Failed to send position topic", "error", err)
+			}
 			if err != nil {
 				w.Logger.Error("Failed to send imputation message", "error", err, "key", key)
 			}

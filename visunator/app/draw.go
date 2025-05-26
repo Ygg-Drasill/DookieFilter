@@ -25,8 +25,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	xoff := float32(g.width / 2)
 	yoff := float32(g.height / 2)
 
-	x := xoff + float32(g.ball[0])*g.scale
-	y := yoff + float32(g.ball[1])*g.scale
+	var (
+		x float32 = 0
+		y float32 = 0
+	)
+	if g.ball != nil {
+		x = xoff + float32(g.ball[0])*g.scale
+		y = yoff + float32(g.ball[1])*g.scale
+	}
 
 	vector.DrawFilledCircle(screen, x, y, BALL_SIZE, color.White, true)
 	vector.DrawFilledRect(screen, 0, float32(g.height)-12,
