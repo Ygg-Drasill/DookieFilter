@@ -121,7 +121,7 @@ func (w *Worker) detect(frame types.SmallFrame) {
 			if _, ok = currP[key]; !ok {
 				currP[key] = make(map[int]types.PlayerPosition)
 			}
-			prevP[key][prevPlayer.FrameIdx] = prevPlayer
+			prevP[key][prevFrame.FrameIdx] = prevPlayer
 			currP[key][frame.FrameIdx] = currPlayer
 		}
 	}
