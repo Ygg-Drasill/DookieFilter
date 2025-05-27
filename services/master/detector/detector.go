@@ -103,7 +103,6 @@ func (w *Worker) detect(frame types.SmallFrame) {
 
 	prevP := make(map[types.PlayerKey]map[int]types.PlayerPosition)
 	currP := make(map[types.PlayerKey]map[int]types.PlayerPosition)
-	totalP := make(map[types.PlayerKey]map[int]types.PlayerPosition)
 	for key, prevPlayer := range prevFrameMap {
 		currPlayer, ok := currFrameMap[key]
 		if !ok {
@@ -122,13 +121,8 @@ func (w *Worker) detect(frame types.SmallFrame) {
 			if _, ok = currP[key]; !ok {
 				currP[key] = make(map[int]types.PlayerPosition)
 			}
-			if _, ok = totalP[key]; !ok {
-				totalP[key] = make(map[int]types.PlayerPosition)
-			}
 			prevP[key][prevFrame.FrameIdx] = prevPlayer
 			currP[key][frame.FrameIdx] = currPlayer
-			totalP[key][prevFrame.FrameIdx] = prevPlayer
-			totalP[key][frame.FrameIdx] = currPlayer
 		}
 	}
 
@@ -163,10 +157,10 @@ func (w *Worker) decide(
 				}
 				break
 			}
-			w.Logger.Debug("Found swapped player", "key", f.SKey(), "player", frame.Players[i].Position)
+			oldPos := frame.Players[i].Position
 			frame.Players[i].Position = p[key][f.FrameIdx].Position
 			swappers[key] = false
-			w.Logger.Debug("swapped", "key", f.SKey(), "player", frame.Players[i].Position)
+			w.Logger.Debug("swapped", "player", f.SKey(), "old position", oldPos, "new position", frame.Players[i].Position)
 
 			playerPosition, _ := json.Marshal(frame.Players[i])
 			_, err := w.socketStorage.Send("position", zmq.SNDMORE)
@@ -251,7 +245,7 @@ func (w *Worker) swap(
 					continue
 				}
 
-				swapPlayers(prevP, currP, curr, g)
+				swapPlayers(currP, curr, g)
 				swappers[curr.key] = true
 				swappers[g.key] = true
 				break
@@ -282,7 +276,7 @@ func positionProximity(p1, p2 swapPlayer) bool {
 }
 
 func swapPlayers(
-	prevP, currP map[types.PlayerKey]map[int]types.PlayerPosition,
+	currP map[types.PlayerKey]map[int]types.PlayerPosition,
 	p1, p2 swapPlayer,
 ) {
 	var idx1, idx2 int
