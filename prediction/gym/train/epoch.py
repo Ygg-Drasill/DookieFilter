@@ -8,6 +8,7 @@ from gym.utils.data import denormalize_x, m_to_cm, denormalize_y
 
 progress_bar_columns = 200
 
+LOSS_SCALE = 100
 LOSS_MOVEMENT_SCALE = 0.01
 LOSS_ANGLE_SCALE = 0.01
 
@@ -18,7 +19,6 @@ def train_epoch(epoch: int,
                 epoch_total: int,
                 model: nn.Module,
                 dataloader: DataLoader,
-                loss_function,
                 optimizer:torch.optim.Optimizer,
                 device:torch.device,
                 board_logger: BoardLogger = None):
@@ -41,17 +41,18 @@ def train_epoch(epoch: int,
 
         output, delta = model(batch_x)
 
-        low_movement_penalty = torch.clamp(MIN_MOVEMENT_THRESHOLD - delta.abs(), min=0.0).mean()
+        low_movement_penalty = torch.clamp(MIN_MOVEMENT_THRESHOLD - torch.linalg.vector_norm(delta.abs()), min=0.0)
 
-        prev_delta = batch_x[:, -1, 0: 2] - batch_x[:, -2, 0: 2]
-        cos_similarity = torch.nn.functional.cosine_similarity(prev_delta, delta)
-        angle_penalty = 1 - cos_similarity.mean()
+        #prev_delta = batch_x[:, -1, 0: 2] - batch_x[:, -2, 0: 2]
+        #cos_similarity = torch.nn.functional.cosine_similarity(prev_delta, delta)
+        #angle_penalty = 1 - cos_similarity.mean()
 
         out_x = output[:, 0]
         out_y = output[:, 1]
         output = torch.stack((denormalize_x(out_x), denormalize_y(out_y)), dim=1)
 
-        loss = loss_function(output, batch_y)
+        loss = torch.linalg.vector_norm(output.sub(batch_y).mul(LOSS_SCALE), dim=1)# loss_function(output, batch_y)
+        loss = torch.pow(loss, 2).add(low_movement_penalty).mean()
         #loss = loss + low_movement_penalty * LOSS_MOVEMENT_SCALE + angle_penalty * LOSS_ANGLE_SCALE
 
         running_loss += loss.item()
@@ -71,7 +72,6 @@ def validate_epoch(epoch: int,
                    epoch_total: int,
                    model: nn.Module,
                    dataloader: DataLoader,
-                   loss_function,
                    device:torch.device,
                    board_logger: BoardLogger = None):
     progress_dataloader = tqdm(dataloader,
@@ -92,16 +92,16 @@ def validate_epoch(epoch: int,
             output, _ = model(batch_x)
             out_x = output[:, 0]
             out_y = output[:, 1]
-            output = torch.stack((m_to_cm(denormalize_x(out_x)), m_to_cm(denormalize_y(out_y))), dim=1)
+            output = torch.stack((denormalize_x(out_x), denormalize_y(out_y)), dim=1)
 
             truth_x = batch_y[:, 0]
             truth_y = batch_y[:, 1]
-            truth = torch.stack((m_to_cm(truth_x), m_to_cm(truth_y)), dim=1)
-            loss = torch.nn.functional.l1_loss(output, truth)
-            running_loss += loss.item()
+            truth = torch.stack((truth_x, truth_y), dim=1)
+            deviation = torch.linalg.vector_norm(truth.sub(output)).mean().mul(100) #average in cm
+            running_loss += deviation.item()
             total += 1
-        avg_loss_across_batches = running_loss / total
-        progress_dataloader.set_postfix({'avg deviation': avg_loss_across_batches})
-        if board_logger is not None:
-            board_logger.log("Average Deviation (cm)", loss)
+            avg_loss_across_batches = running_loss / total
+            progress_dataloader.set_postfix({'avg deviation': avg_loss_across_batches})
+            if board_logger is not None:
+                board_logger.log("Average Deviation (cm)", deviation)
     return running_loss / total

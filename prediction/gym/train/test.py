@@ -10,6 +10,7 @@ from matplotlib.figure import Figure
 from gym.utils.data import get_features
 from model.player_predictor import PlayerPredictor
 
+
 def load_model(model_path) -> PlayerPredictor:
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = PlayerPredictor(device, 5, 64, 4)

@@ -1,5 +1,6 @@
 import math
 import os.path
+from typing import Generator
 
 import numpy as np
 import pandas as pd
@@ -65,12 +66,12 @@ if __name__ == '__main__':
     # }
 
     hyper_parameters = {
-        'n_nearest_players': [3,4,5,8,16], #3-5
-        'stack_size': [2,3,4,8,32], #4-32
-        'hidden_size': [128,256,512], #32-128
+        'n_nearest_players': [5], #3-5
+        'stack_size': [3], #4-32
+        'hidden_size': [128], #32-128
         'sequence_length': [20], #20-40
-        'batch_size': [64, 128, 256],
-        'lr': [0.01, 0.001, 0.0001],
+        'batch_size': [64],
+        'lr': [0.001],
     }
     datasets = {}
 
@@ -90,37 +91,33 @@ def train_model(
     model.to(device)
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
     epochs = 10
-    loss_function = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
-    training_step = 0
-    validation_step = 0
     writer = SummaryWriter(f'{export_directory}/player/{format_model_name( n_nearest, stack_size, hidden_size, lr, epochs, batch_size, n_parameters)}')
     training_logger = BoardLogger(writer)
     validation_logger = BoardLogger(writer)
     train_loss, validation_loss = 0, 0
     validation_loss_low = float(math.inf)
     train_loss_low = float(math.inf)
+    train_losses, validation_losses = [], []
     for epoch in range(epochs):
-        tl = train_epoch(epoch, epochs, model, train_dataloader, loss_function, optimizer, device)
-        vl = validate_epoch(epoch, epochs, model, validation_dataloader, loss_function, device)
+        tl = train_epoch(epoch, epochs, model, train_dataloader, optimizer, device, training_logger)
+        vl = validate_epoch(epoch, epochs, model, validation_dataloader, device, validation_logger)
         if epoch == 0: continue
         train_losses.append(tl)
         validation_losses.append(vl)
 
-    torch.save(model.state_dict(), os.path.abspath("./model.pth"))
-
         model_name = format_model_name(n_nearest, stack_size, hidden_size, lr, epochs, batch_size, n_parameters)
         model_path = f'{export_directory}/models/{model_name}.pt'
 
-        figure = test_model(model, "../temp/f361a535-4d7e-4470-a187-01074c0046fe/chunk_60.csv")
+        figure = test_model(model, "../data/f361a535-4d7e-4470-a187-01074c0046fe/chunk_60.csv")
         writer.add_figure(f"Prediction example {model_name}", figure=figure, global_step=epoch)
         writer.flush()
-        if validation_loss < validation_loss_low:
-            validation_loss_low = validation_loss
+        if vl < validation_loss_low:
+            validation_loss_low = vl
             torch.save(model.state_dict(), model_path)
-        if train_loss < train_loss_low:
-            train_loss_low = train_loss
+        if tl < train_loss_low:
+            train_loss_low = tl
 
     writer.add_hparams({
         'batch_size': batch_size,

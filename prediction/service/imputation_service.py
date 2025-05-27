@@ -1,3 +1,4 @@
+import threading
 import typing
 
 import numpy as np
@@ -7,6 +8,7 @@ from numpy import ndarray
 
 from gym.utils.data import denormalize_x, denormalize_y
 from model.player_predictor import PlayerPredictor
+from service.imputation_target import ImputationTarget
 
 PROTOCOL = "tcp"
 ADDRESS = "localhost"
@@ -22,6 +24,7 @@ class ImputationService:
         self.socket_imputation = self.context.socket(zmq.PULL)
         self.player_series: dict[str, list[ndarray]] = dict[str, list[ndarray]]()
         self.active = False
+        self.targets: set[ImputationTarget] = {}
 
         model.to(self.model.device)
         model.eval()
@@ -50,13 +53,18 @@ class ImputationService:
         for request in imputation_request:
             frame_idx = int(request["frame_idx"])
             player_number = int(request["player_number"])
+            home = imputation_request["home"]
             sequence = self.get_player_history(frame_idx, player_number)
+            self.targets = self.targets.union({ImputationTarget(player_number, home, frame_idx)})
+            print(f"handling imputation idx:{frame_idx} {'h' if home else 'a'}_{player_number}")
             target_next = self.predict(sequence)
-            self.socket_storage.send_string("player", zmq.SNDMORE)
+            self.socket_storage.send_string("position", zmq.SNDMORE)
             self.socket_storage.send_json({
-                "frame_idx": frame_idx,
-                "player_number": player_number,
-                "target_next": target_next
+                "frameIdx": frame_idx,
+                "number": player_number,
+                "home": imputation_request["home"],
+                "x": target_next["x"],
+                "y": target_next["y"],
             })
 
 
