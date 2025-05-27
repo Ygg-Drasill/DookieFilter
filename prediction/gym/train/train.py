@@ -91,11 +91,8 @@ def train_model(
     model.to(device)
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
     epochs = 10
-    loss_function = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
-    training_step = 0
-    validation_step = 0
     writer = SummaryWriter(f'{export_directory}/player/{format_model_name( n_nearest, stack_size, hidden_size, lr, epochs, batch_size, n_parameters)}')
     training_logger = BoardLogger(writer)
     validation_logger = BoardLogger(writer)
@@ -104,8 +101,8 @@ def train_model(
     train_loss_low = float(math.inf)
     train_losses, validation_losses = [], []
     for epoch in range(epochs):
-        tl = train_epoch(epoch, epochs, model, train_dataloader, loss_function, optimizer, device, training_logger)
-        vl = validate_epoch(epoch, epochs, model, validation_dataloader, loss_function, device, validation_logger)
+        tl = train_epoch(epoch, epochs, model, train_dataloader, optimizer, device, training_logger)
+        vl = validate_epoch(epoch, epochs, model, validation_dataloader, device, validation_logger)
         if epoch == 0: continue
         train_losses.append(tl)
         validation_losses.append(vl)
