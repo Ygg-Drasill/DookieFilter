@@ -111,6 +111,8 @@ func main() {
 	durationSum := int64(0)
 	frameCount := 0
 
+	var dataWriter *dataWriter = newDataWriter(os.Args[3])
+
 	totalRawErrorMm, totalFilteredErrorMm := float64(0), float64(0)
 	missingRawPoints, missingFilteredPoints := 0, 0
 	wg.Add(1)
@@ -122,6 +124,7 @@ func main() {
 			}
 			filteredFrame := types.SmallFrame{}
 			err = json.Unmarshal([]byte(strings.Join(message[1:], "")), &filteredFrame)
+			dataWriter.writeFrame(filteredFrame)
 			if err != nil {
 				panic(err)
 			}
